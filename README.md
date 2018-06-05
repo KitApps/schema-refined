@@ -26,6 +26,11 @@ to learn more - check out examples :)
 
 TBD
 
+## Inspired By
+
+* [Refined in Haskell](https://github.com/nikita-volkov/refined)
+* [Refined in Scala](https://github.com/fthomas/refined)
+
 ## TODO
 
 - [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`
