@@ -7,6 +7,28 @@
   (:import (java.net URI URISyntaxException)))
 
 ;;
+;; boolean operations
+;;
+
+(defn Not [dt])
+
+(defn And
+  ([dt1 dt2] (And dt1 dt2 nil))
+  ([dt1 dt2 name]))
+
+(defn AllOf
+  ([dts] (AllOf dts nil))
+  ([dts name]))
+
+(defn Xor
+  ([dt1 dt2] (Xor dt1 dt2 nil))
+  ([dt1 dt2 name]))
+
+(defn OneOf
+  ([dts] (OneOf dts nil))
+  ([dts name]))
+
+;;
 ;; numeric
 ;;
 
@@ -123,6 +145,7 @@
 
 (def EmptyMap)
 
+;; xxx: use pre to ensure that given dt is schema
 (defn NonEmptyCountable [countable-dt]
   (s/constrained countable-dt #(pos? (count %)) 'should-contain-at-least-one-element))
 
