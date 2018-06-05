@@ -6,6 +6,10 @@
             [potemkin.collections :refer [def-map-type]])
   (:import (java.net URI URISyntaxException)))
 
+;;
+;; numeric
+;;
+
 (def PositiveInt (s/constrained s/Int pos? 'should-be-positive))
 
 (def NegativeInt (s/constrained s/Int neg? 'should-be-negative))
@@ -18,29 +22,169 @@
 
 (def NonNegativeDouble (s/constrained double (complement neg?) 'should-not-be-negative))
 
+(def Even)
+
+(def Odd)
+
+(defn Less [n])
+
+(defn LessOrEqual [n])
+
+(defn Greater [n])
+
+(defn GreaterOrEqual [n])
+
+(defn OpenInterval [a b])
+
+(defn ClosedInterval [a b])
+
+(defn OpenClosedInterval [a b])
+
+(defn ClosedOpenInterval [a b])
+
+(defn OpenIntervalOf [dt a b])
+
+(defn ClosedIntervalOf [dt a b])
+
+(defn OpenClosedIntervalOf [dt a b])
+
+(defn ClosedOpenIntervalOf [dt a b])
+
+(defn Modulo [n o])
+
+(defn Divisible [n])
+
+(defn NonDivisible [n])
+
+;;
+;; strings & chars
+;;
+
 (def NonEmptyStr (s/constrained s/Str #(not (cstr/blank? %)) 'should-not-be-blank))
 
-(defn NonEmptyList [dt]
-  (s/constrained [dt] #(pos? (count %)) 'should-contain-at-least-one-element))
+;; :thinking: can be implemented with AND, not s/constrained
+;; xxx: BoundedStr sounds a bit odd
+(defn BoundedLengthStr
+  ([min max] (BoundedLengthStr min max false))
+  ([min max trimmed?]
+   (s/constrained
+    s/Str
+    #(<= min (count (if trimmed? (cstr/trim %1) %1)) max)
+    'string-length-should-conform-boundaries)))
 
-(defn Bounded [dt left-bound right-bound]
+(def DigitChar)
+
+(def LetterChar)
+
+(def LetterOrDigitChar)
+
+(def LowercaseChar)
+
+(def UppercaseChar)
+
+(def WhitespaceChar)
+
+;; :thinking: how to compose them?
+(defn StartsWith [s])
+
+(defn EndsWith [s])
+
+(def ValidByte)
+
+(def ValidInt)
+
+(def ValidFloat)
+
+(def ValidXml)
+
+(def ValidJSON)
+
+(def ValidXPath)
+
+(def Uri (s/constrained NonEmptyStr
+                        (fn [uri]
+                          (try
+                            (URI. uri)
+                            true
+                            (catch URISyntaxException _ false)))
+                        'should-be-parsable-uri))
+
+(def Url)
+
+;;
+;; collections
+;;
+
+(defn EmptyCountable [dt])
+
+(def EmptyList)
+
+(def EmptySet)
+
+(def EmptyMap)
+
+(defn NonEmptyCountable [countable-dt]
+  (s/constrained countable-dt #(pos? (count %)) 'should-contain-at-least-one-element))
+
+(defn NonEmptyListOf [dt]
+  (NonEmptyCountable [dt]))
+
+(defn NonEmptyMap [key-dt value-dt]
+  (NonEmptyCountable {key-dt value-dt}))
+
+(defn NonEmptySetOf [dt]
+  (NonEmptyCountable #{dt}))
+
+;; xxx: what about closed-left and closed-right?
+;; xxx: reimplement as AND?
+(defn BoundedCountable [dt count-left-bound count-right-bound]
   (s/constrained
    dt
-   (fn [data]
-     (<= left-bound (count data) right-bound))
-   'collection-length-should-conform-boundaries))
-
-(defn BoundedListOf [dt count-left-bound count-right-bound]
-  (s/constrained
-   [dt]
    #(<= count-left-bound (count %) count-right-bound)
    'collection-length-should-conform-boundaries))
 
-(defn NonEmptyMap [key-dt value-dt]
-  (s/constrained
-   {key-dt value-dt}
-   #(pos? (count %))
-   'should-contain-at-least-one-element))
+(defn BoundedListOf [dt left right]
+  (BoundedCountable [dt] left right))
+
+(defn BoundedSetOf [dt left right]
+  (BoundedCountable #{dt} left right))
+
+(defn BoundedMapOf [key-dt value-dt]
+  (BoundedCountable {key-dt value-dt} left right))
+
+(defn SingleValueListOf [dt]
+  (BoundedListOf dt 1 1))
+
+(defn SingleValueSetOf [dt]
+  (BoundedSetOf dt 1 1))
+
+;;
+;; collection predicates
+;; xxx: how to use them?
+;;
+
+(defn Forall [p])
+
+(defn Exists [p])
+
+;; head in clojure
+(defn First [p])
+
+(defn Second [p])
+
+(defn Index [n p])
+
+;; tail in clojure
+(defn Rest [p])
+
+(defn Last [p])
+
+(defn Butlast [p])
+
+;;
+;; sets
+;; xxx: decide what to do
+;;
 
 (defn OrderedSet [dt]
   (s/constrained
@@ -69,6 +213,10 @@
    #(not (empty? %))
    'should-not-be-empty))
 
+;;
+;; maps
+;;
+
 (defn AtLeast [dt]
   {:pre [(map? dt)]}
   (assoc dt s/Any s/Any))
@@ -81,30 +229,19 @@
           [(s/optional-key k) (s/maybe v)]))
        (into {})))
 
-(def Uri (s/constrained NonEmptyStr
-                        (fn [uri]
-                          (try
-                            (URI. uri)
-                            true
-                            (catch URISyntaxException _ false)))
-                        'should-be-parsable-uri))
-
-(defn TypedRange [dt from to]
-  (s/constrained dt #(<= from % to) 'should-be-bounded-by-range-given))
-
-(defn RangeLengthStr
-  ([min max] (RangeLengthStr min max false))
-  ([min max trimmed?]
-   (s/constrained
-    s/Str
-    #(<= min (count (if trimmed? (cstr/trim %1) %1)) max)
-    'string-length-should-conform-boundaries)))
+;;
+;; misc
+;;
 
 (def Coordinate (TypedRange double -180.0 180.0))
 
 (def GeoPoint {:lat Coordinate :lng Coordinate})
 
 (def Scale (TypedRange double 0.0 1.0))
+
+;;
+;; guarded structs
+;;
 
 (defprotocol Guardable
   (append-guard [this guard])
