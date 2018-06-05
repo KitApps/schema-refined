@@ -108,9 +108,9 @@
 
 (def DigitChar)
 
-(def LetterChar)
+(def ASCIILetterChar)
 
-(def LetterOrDigitChar)
+(def ASCIILetterOrDigitChar)
 
 (def LowercaseChar)
 
