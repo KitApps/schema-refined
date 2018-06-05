@@ -32,6 +32,14 @@
 ;; numeric
 ;;
 
+(defn PositiveOf [dt])
+
+(defn NegativeOf [dt])
+
+(defn NonNegativeOf [dt])
+
+(defn NonPositiveOf [dt])
+
 (def PositiveInt (s/constrained s/Int pos? 'should-be-positive))
 
 (def NegativeInt (s/constrained s/Int neg? 'should-be-negative))
@@ -47,6 +55,16 @@
 (def Even)
 
 (def Odd)
+
+(defn Modulo [n o])
+
+(defn Divisible [n])
+
+(defn NonDivisible [n])
+
+;;
+;; ordering
+;;
 
 (defn Less [n])
 
@@ -71,12 +89,6 @@
 (defn OpenClosedIntervalOf [dt a b])
 
 (defn ClosedOpenIntervalOf [dt a b])
-
-(defn Modulo [n o])
-
-(defn Divisible [n])
-
-(defn NonDivisible [n])
 
 ;;
 ;; strings & chars
