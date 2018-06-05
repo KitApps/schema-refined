@@ -112,6 +112,8 @@
 
 (def ASCIILetterOrDigitChar)
 
+(def BitChar)
+
 (def LowercaseChar)
 
 (def UppercaseChar)
@@ -123,11 +125,11 @@
 
 (defn EndsWith [s])
 
-(def ValidByte)
+(def BitStr)
 
-(def ValidInt)
+(def IntStr)
 
-(def ValidFloat)
+(def FloatStr)
 
 (def ValidXml)
 
