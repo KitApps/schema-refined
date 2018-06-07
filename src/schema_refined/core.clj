@@ -32,25 +32,33 @@
 ;; numeric
 ;;
 
-(defn PositiveOf [dt])
+(defn PositiveOf [dt]
+  (s/constrained dt pos? 'should-be-positive))
 
-(defn NegativeOf [dt])
+(defn NegativeOf [dt]
+  (s/constrained s/Int neg? 'should-be-negative))
 
-(defn NonNegativeOf [dt])
+(defn NonNegativeOf [dt]
+  (s/constrained dt (complement neg?) 'should-not-be-negative))
 
-(defn NonPositiveOf [dt])
+(defn NonPositiveOf [dt]
+  (s/constrained dt (complement pos?) 'should-not-be-positive))
 
-(def PositiveInt (s/constrained s/Int pos? 'should-be-positive))
+(def PositiveInt (PositiveOf s/Int))
 
-(def NegativeInt (s/constrained s/Int neg? 'should-be-negative))
+(def NegativeInt (NegativeOf s/Int))
 
-(def NonNegativeInt (s/constrained s/Int (complement neg?) 'should-not-be-negative))
+(def NonNegativeInt (NonNegativeOf s/Int))
 
-(def PositiveDouble (s/constrained double pos? 'should-be-positive))
+(def NonPositiveInt (NonPositiveOf s/Int))
 
-(def NegativeDouble (s/constrained double neg? 'should-be-negative))
+(def PositiveDouble (PositiveOf double))
 
-(def NonNegativeDouble (s/constrained double (complement neg?) 'should-not-be-negative))
+(def NegativeDouble (NegativeOf double))
+
+(def NonNegativeDouble (NonNegativeOf double))
+
+(def NonPositiveDouble (NonPositiveOf double))
 
 (def Even)
 
@@ -97,7 +105,6 @@
 (def NonEmptyStr (s/constrained s/Str #(not (cstr/blank? %)) 'should-not-be-blank))
 
 ;; :thinking: can be implemented with AND, not s/constrained
-;; xxx: BoundedStr sounds a bit odd
 (defn BoundedLengthStr
   ([min max] (BoundedLengthStr min max false))
   ([min max trimmed?]
