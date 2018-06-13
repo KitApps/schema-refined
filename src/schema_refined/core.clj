@@ -309,22 +309,28 @@
    (most likely a keyword) followed by the list of potential values
    and appropriate schemas. Throws if the result of determinant
    function does not confirm any listed value (the same as conditional
-   does when no match found).
+   does when no match found). In case subtypes are maps, please consider
+   using Struct and Dispatch, that would give you flexibility to deal
+   with constrains (guards).
+
    Last pair treats :else value the same way conditional does.
    Has optional last symbol parameter to be returned in error if none of
    conditions match.
+
    Quick example:
-   (def NewEvent {:status (s/eq :new} :name (s/maybe s/Str)})
-   (def SubmittedEvent {:status (s/eq :submitted) :name NonEmptyStr}) 
-   (def Event
-     (dispatch-on :status
-                  :new NewEvent
-                  :submitted SubmittedEvent))
-   (def Event
-     (dispatch-on :status
-                  :new NewEvent
-                  :submitted SubmittedEvent
-                  'has-not-valid-status))"
+
+   (def Point (BoundedListOf double 2 2))
+   (def Dot [(s/one Point)])
+   (def Line (BoundedListOf Point 2 2))
+   (def Triangle (s/constrained (BoundedListOf Point 3 3) #(not (singular? %))))
+   (def RandomShape (NonEmptyListOf Point))
+
+   (def Polygon
+     (dispatch-on count
+       1 Dot
+       2 Line
+       3 Triangle
+       :else RandomShape))"
   [key-fn & subtypes]
   {:pre [(not (empty? subtypes))
          (or (even? (count subtypes))
