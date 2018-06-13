@@ -57,8 +57,7 @@ Basic primitives, collections and composability:
 
 (def GeoPoint {:lat Coord :lng Coord})
 
-(def GeoPolygon (r/BoundedListOf GeoPoint 1 20))
-
+(def GeoPolygon (r/BoundedListOf GeoPoint 1 50))
 
 (def input [{:lat 48.8529 :lng 2.3499}
             {:lat 51.5085 :lng -0.0762}
@@ -77,7 +76,8 @@ readable version of conditionals `r/dispatch-on` that covers the fundamental use
 to decide on the branch (option).
 
 ```clojure
-(def BoundedGeoPolygon [n] (r/BoundedListOf GeoPoint n n))
+(defn BoundedGeoPolygon [n]
+  (r/BoundedListOf GeoPoint n))
 
 (def Point (BoundedGeoPolygon 1))
 
