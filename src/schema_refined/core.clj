@@ -111,21 +111,55 @@
   [n]
   (s/pred #(>= % n) 'greater-or-equal))
 
-(defn OpenInterval [a b])
+;; xxx: reimplement all intervals to have better error
+;;      messages, like "SHOULD BE 0 < % < 10"
+(defn OpenInterval
+  "a < value < b"
+  [a b]
+  {:pre [(< a b)]}
+  (s/pred #(< a % b)))
 
-(defn ClosedInterval [a b])
+(defn ClosedInterval
+  "a <= value <= b"
+  [a b]
+  {:pre [(<= a b)]}
+  (s/pred #(<= a % b)))
 
-(defn OpenClosedInterval [a b])
+(defn OpenClosedInterval
+  "a < value <= b"
+  [a b]
+  {:pre [(< a b)]}
+  (s/pred #(and (< a %1) (<= %1 b))))
 
-(defn ClosedOpenInterval [a b])
+(defn ClosedOpenInterval
+  "a <= value < b"
+  [a b]
+  {:pre [(< a b)]}
+  (s/pred #(and (<= a %1) (< %1 b))))
 
-(defn OpenIntervalOf [dt a b])
+(defn OpenIntervalOf
+  "a < value < b"
+  [dt a b]
+  {:pre [(schema? dt)]}
+  (And dt (OpenInterval a b)))
 
-(defn ClosedIntervalOf [dt a b])
+(defn ClosedIntervalOf
+  "a <= value <= b"
+  [dt a b]
+  {:pre [(schema? dt)]}
+  (And dt (ClosedInterval a b)))
 
-(defn OpenClosedIntervalOf [dt a b])
+(defn OpenClosedIntervalOf
+  "a < value <= b"
+  [dt a b]
+  {:pre [(schema? dt)]}
+  (And dt (OpenClosedInterval a b)))
 
-(defn ClosedOpenIntervalOf [dt a b])
+(defn ClosedOpenIntervalOf
+  "a <= value < b"
+  [dt a b]
+  {:pre [(schema? dt)]}
+  (And dt (ClosedOpenInterval a b)))
 
 ;;
 ;; strings & chars

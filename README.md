@@ -40,6 +40,7 @@ to learn more - check out examples :)
 - [ ] Setup CI with public results
 - [ ] Render and release documentation
 - [ ] Release on Clojars
+- [ ] Reimplement all *intervals* to get better error messages
 
 ## Usage 
 
