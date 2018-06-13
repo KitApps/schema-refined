@@ -4,7 +4,7 @@
             [schema.utils :as schema-utils]
             [clojure.string :as cstr]
             [potemkin.collections :refer [def-map-type]])
-  (:import (java.net URI URISyntaxException)))
+  (:import (java.net URI URISyntaxException URL MalformedURLException)))
 
 (defn schema? [dt]
   (satisfies? s/Schema dt))
@@ -164,7 +164,11 @@
 ;; strings & chars
 ;;
 
-(def NonEmptyStr (s/constrained s/Str #(not (cstr/blank? %)) 'should-not-be-blank))
+(def NonEmptyStr
+  (s/constrained
+   s/Str
+   #(not (cstr/blank? %))
+   'should-not-be-blank))
 
 ;; :thinking: can be implemented with AND, not s/constrained
 (defn BoundedLengthStr
@@ -175,46 +179,82 @@
     #(<= min (count (if trimmed? (cstr/trim %1) %1)) max)
     'string-length-should-conform-boundaries)))
 
-(def DigitChar)
+(def DigitChar #"^[0-9]$")
 
-(def ASCIILetterChar)
+(def ASCIILetterChar #"^[a-z]$")
 
-(def ASCIILetterOrDigitChar)
+(def ASCIILetterOrDigitChar #"^[0-9a-z]$")
 
-(def BitChar)
+(def BitChar #"^[0|1]$")
 
-(def LowercaseChar)
+(defn StartsWith [prefix]
+  (s/constrained
+   s/Str
+   #(cstr/starts-with? % prefix)))
 
-(def UppercaseChar)
+(defn EndsWith [suffix]
+  (s/constrained
+   s/Str
+   #(cstr/ends-with? % suffix)))
 
-(def WhitespaceChar)
+(defn Includes [substr]
+  (s/constrained
+   s/Str
+   #(cstr/includes? % substr)))
 
-;; :thinking: how to compose them?
-(defn StartsWith [s])
+(def LowerCased
+  (s/constrained
+   s/Str
+   #(= %1 (cstr/lower-case %1))
+   'should-be-lower-cased))
 
-(defn EndsWith [s])
+(def UpperCased
+  (s/constrained
+   s/Str
+   #(= %1 (cstr/upper-case %1))
+   'should-be-upper-cased))
 
-(def BitStr)
+(def BitStr #"[0|1]*")
 
-(def IntStr)
+(def IntStr
+  (s/constrained
+   NonEmptyStr
+   (fn [str]
+     (try
+       (Integer/parseInt str)
+       true
+       (catch NumberFormatException _ false)))
+   'should-be-parsable-int))
 
-(def FloatStr)
+(def FloatStr
+  (s/constrained
+   NonEmptyStr
+   (fn [str]
+     (try
+       (Float/parseFloat str)
+       true
+       (catch NumberFormatException _ false)))
+   'should-be-parsable-float))
 
-(def ValidXml)
+(def Uri
+  (s/constrained
+   NonEmptyStr
+   (fn [uri]
+     (try
+       (URI. uri)
+       true
+       (catch URISyntaxException _ false)))
+   'should-be-parsable-uri))
 
-(def ValidJSON)
-
-(def ValidXPath)
-
-(def Uri (s/constrained NonEmptyStr
-                        (fn [uri]
-                          (try
-                            (URI. uri)
-                            true
-                            (catch URISyntaxException _ false)))
-                        'should-be-parsable-uri))
-
-(def Url)
+(def Url
+  (s/constrained
+   NonEmptyStr
+   (fn [url]
+     (try
+       (URL. url)
+       true
+       (catch MalformedURLException _ false)))
+   'should-be-parsable-url))
 
 ;;
 ;; collections

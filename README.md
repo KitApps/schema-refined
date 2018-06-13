@@ -33,7 +33,6 @@ to learn more - check out examples :)
 
 - [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`
 - [ ] Define comprehensive set of predicates for numeric types, strings and collections
-- [ ] Valid JSON/XML checker with lazy deps check (not to include them upfront)
 - [ ] Publish slides from the talk on refinement types and share link here
 - [ ] Fill in "Usage" section in the README
 - [ ] Start CHANGLELOG
