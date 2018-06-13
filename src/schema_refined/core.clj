@@ -301,6 +301,50 @@
        (into {})))
 
 ;;
+;; simple sum types
+;;
+
+(defn dispatch-on
+  "Define a conditional schema by specifying determinant function
+   (most likely a keyword) followed by the list of potential values
+   and appropriate schemas. Throws if the result of determinant
+   function does not confirm any listed value (the same as conditional
+   does when no match found).
+   Last pair treats :else value the same way conditional does.
+   Has optional last symbol parameter to be returned in error if none of
+   conditions match.
+   Quick example:
+   (def NewEvent {:status (s/eq :new} :name (s/maybe s/Str)})
+   (def SubmittedEvent {:status (s/eq :submitted) :name NonEmptyStr}) 
+   (def Event
+     (dispatch-on :status
+                  :new NewEvent
+                  :submitted SubmittedEvent))
+   (def Event
+     (dispatch-on :status
+                  :new NewEvent
+                  :submitted SubmittedEvent
+                  'has-not-valid-status))"
+  [key-fn & subtypes]
+  {:pre [(not (empty? subtypes))
+         (or (even? (count subtypes))
+             (and (symbol? (last subtypes))
+                  (>= (count subtypes) 3)))]}
+  (let [pairs (partition 2 subtypes)
+        [last-key last-type] (last pairs)
+        all-pairs (concat (mapcat (fn [[value type]]
+                                    [#(= value (key-fn %)) type])
+                                  (butlast pairs))
+                          [(if (= :else last-key)
+                             :else
+                             #(= last-key (key-fn %)))
+                           last-type]
+                          (if (odd? (count subtypes))
+                            [(last subtypes)]
+                            []))]
+    (apply s/conditional all-pairs)))
+
+;;
 ;; guarded structs
 ;;
 

@@ -43,7 +43,69 @@ to learn more - check out examples :)
 
 ## Usage 
 
-TBD
+Get ready! 
+
+```clojure
+(require '[schema-refined.core :as r])
+(require '[schema.core :as s])
+```
+
+Basic primitives, collections and composability:
+
+```clojure
+(def Coord (r/OpenClosedIntervalOf double -180.0 180.0))
+
+(def GeoPoint {:lat Coord :lng Coord})
+
+(def GeoPolygon (r/BoundedListOf GeoPoint 1 20))
+
+
+(def input [{:lat 48.8529 :lng 2.3499}
+            {:lat 51.5085 :lng -0.0762}
+            {:lat 40.0086 :lng 28.9802}])
+
+(s/check GeoPolygon input)
+```
+
+### Sum Types
+
+Schema previously had `s/either` to deal with sum types. Which didn't work the way e.g. `one-of` doesn't work
+when dealing with JSON schema: the description is fragile and error messages is not useful at all ("typing" message
+that given data does not conform any of the listed options would only confuse). That's why `schema` switch to
+`conditional` where you have to specify branching predicate in advance. `schema-refined` includes slightly more
+readable version of conditionals `r/dispatch-on` that covers the fundamental use case of having a single predicate
+to decide on the branch (option).
+
+```clojure
+(def BoundedGeoPolygon [n] (r/BoundedListOf GeoPoint n n))
+
+(def Point (BoundedGeoPolygon 1))
+
+(def Line (BoundedGeoPolygon 2))
+
+(def Triangle (BoundedGeoPolygon 3))
+
+(def RandomShape GeoPolygon)
+
+(def GeoShape
+  (r/dispatch-on count
+    1 Point
+    2 Line
+    3 Triangle
+    :else RandomShape))
+```
+
+### Product Types
+
+Product types with `r/Struct`:
+
+```clojure
+
+```
+
+### More?
+
+To find more examples and use cases, please see doc strings (whenever applicable) and tests.
 
 ## Future Versions (a.k.a In Progress)
 
