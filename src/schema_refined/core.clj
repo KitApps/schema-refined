@@ -187,32 +187,32 @@
 ;; collections
 ;;
 
-(defn EmptyCountable [dt]
+(defn Empty [dt]
   {:pre [(schema? dt)]}
-  (s/constrained dt #(= 0 (count %)) 'should-be-empty))
+  (s/constrained dt empty? 'should-be-empty))
 
-(def EmptyList (EmptyCountable []))
+(def EmptyList (Empty []))
 
-(def EmptySet (EmptyCountable #{}))
+(def EmptySet (Empty #{}))
 
-(def EmptyMap (EmptyCountable {}))
+(def EmptyMap (Empty {}))
 
-(defn NonEmptyCountable [countable-dt]
-  {:pre [(schema? countable-dt)]}
-  (s/constrained countable-dt #(pos? (count %)) 'should-contain-at-least-one-element))
+(defn NonEmpty [dt]
+  {:pre [(schema? dt)]}
+  (s/constrained dt #(not (empty? %)) 'should-contain-at-least-one-element))
 
 (defn NonEmptyListOf [dt]
   {:pre [(schema? dt)]}
-  (NonEmptyCountable [dt]))
+  (NonEmpty [dt]))
 
 (defn NonEmptyMap [key-dt value-dt]
   {:pre [(schema? key-dt)
          (schema? value-dt)]}
-  (NonEmptyCountable {key-dt value-dt}))
+  (NonEmpty {key-dt value-dt}))
 
 (defn NonEmptySetOf [dt]
   {:pre [(schema? dt)]}
-  (NonEmptyCountable #{dt}))
+  (NonEmpty #{dt}))
 
 ;; xxx: what about closed-left and closed-right?
 ;; xxx: reimplement as AND?
@@ -267,34 +267,20 @@
 (defn Butlast [p])
 
 ;;
-;; sets
-;; xxx: decide what to do
+;; sequence of unique items
 ;;
 
-(defn OrderedSet [dt]
+(defn UniqueItemsListOf [dt]
+  {:pre [(schema? dt)]}
   (s/constrained
    [dt]
    #(= (count %1) (count (set %1)))
    'items-should-be-unique))
 
-(defn NonEmptyOrderedSet [dt]
+(defn NonEmptyUniqueItemsListOf [dt]
+  {:pre [(schema? dt)]}
   (s/constrained
-   (OrderedSet dt)
-   #(not (empty? %))
-   'should-not-be-empty))
-
-(defn OrderedSetByFn [dt f]
-  (s/constrained
-   [dt]
-   (fn [values]
-     (let [transformed (map f values)]
-       (= (count transformed)
-          (count (set transformed)))))
-   'items-should-be-unique))
-
-(defn NonEmptyOrderedSetByFn [dt f]
-  (s/constrained
-   (OrderedSetByFn dt f)
+   (UniqueItemsListOf dt)
    #(not (empty? %))
    'should-not-be-empty))
 
@@ -313,16 +299,6 @@
         (fn [[k v]]
           [(s/optional-key k) (s/maybe v)]))
        (into {})))
-
-;;
-;; misc
-;;
-
-(def Coordinate (TypedRange double -180.0 180.0))
-
-(def GeoPoint {:lat Coordinate :lng Coordinate})
-
-(def Scale (TypedRange double 0.0 1.0))
 
 ;;
 ;; guarded structs
