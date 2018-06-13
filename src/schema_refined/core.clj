@@ -223,25 +223,37 @@
    #(<= count-left-bound (count %) count-right-bound)
    'collection-length-should-conform-boundaries))
 
-(defn BoundedListOf [dt left right]
-  {:pre [(schema? dt)]}
-  (BoundedCountable [dt] left right))
+(defn BoundedListOf
+  ([dt size] (BoundedListOf dt size size))
+  ([dt left right]
+   {:pre [(schema? dt)]}
+   (BoundedCountable [dt] left right)))
 
-(defn BoundedSetOf [dt left right]
-  {:pre [(schema? dt)]}
-  (BoundedCountable #{dt} left right))
+(defn BoundedSetOf
+  ([dt size] (BoundedSetOf dt size size))
+  ([dt left right]
+   {:pre [(schema? dt)]}
+   (BoundedCountable #{dt} left right)))
 
-(defn BoundedMapOf [key-dt value-dt]
-  {:pre [(schema? dt)]}
-  (BoundedCountable {key-dt value-dt} left right))
+(defn BoundedMapOf
+  ([key-dt value-dt size] (BoundedMapOf key-dt value-dt size size))
+  ([key-dt value-dt left right]
+   {:pre [(schema? key-dt)
+          (schema? value-dt)]}
+   (BoundedCountable {key-dt value-dt} left right)))
 
 (defn SingleValueListOf [dt]
   {:pre [(schema? dt)]}
-  (BoundedListOf dt 1 1))
+  (BoundedListOf dt 1))
 
 (defn SingleValueSetOf [dt]
   {:pre [(schema? dt)]}
-  (BoundedSetOf dt 1 1))
+  (BoundedSetOf dt 1))
+
+(defn SingleValueMapOf [key-dt value-dt]
+  {:pre [(schema? key-dt)
+         (schema? value-dt)]}
+  (BoundedMapOf key-dt value-dt 1))
 
 ;;
 ;; collection predicates
@@ -277,6 +289,13 @@
    #(= (count %1) (count (set %1)))
    'items-should-be-unique))
 
+;; xxx: how to describe that in terms of prev data type
+;;      and not empty predicate?
+;;      what about (And UniqueItemsListOf NonEmpty) ???
+;;      the problem here is that "generic" types work
+;;      as simple function, producing the output right away...
+;;      maybe we need to make a Generic type to track
+;;      dependecies there?
 (defn NonEmptyUniqueItemsListOf [dt]
   {:pre [(schema? dt)]}
   (s/constrained
@@ -301,7 +320,7 @@
        (into {})))
 
 ;;
-;; simple sum types
+;; simple sum type
 ;;
 
 (defn dispatch-on
@@ -319,10 +338,10 @@
 
    Quick example:
 
-   (def Point (BoundedListOf double 2 2))
-   (def Dot [(s/one Point)])
-   (def Line (BoundedListOf Point 2 2))
-   (def Triangle (s/constrained (BoundedListOf Point 3 3) #(not (singular? %))))
+   (def Point (BoundedListOf double 2))
+   (def Dot (SingleValueListOf Point))
+   (def Line (BoundedListOf Point 2))
+   (def Triangle (s/constrained (BoundedListOf Point 3) #(not (singular? %))))
    (def RandomShape (NonEmptyListOf Point))
 
    (def Polygon
