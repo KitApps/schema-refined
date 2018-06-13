@@ -1,10 +1,20 @@
-## Refined
+## schema-refined
 
-Set of predicates and ready-to-go schemas to make you data definitions as precise
-as possible while maintaining extendiblity and readability of your code.
+Powerful "refined" steroids for `schema` library.
 
-Sounds sophisticated? Well... The idea is to keep you away from errors & bugs,
-to learn more - check out examples :) 
+Type refinement is all about making the types (schemas) more precise to keep you away from errors and bugs.
+All heavy lifting of checking/validation the shape of the data is done by [schema](https://github.com/plumatic/schema) library.
+Here we introduce a few new concepts to make schemas flexible and more expressive:
+
+* predicates, like `(LessThan 10)` or `NonEmpty`, that you can combine using logical operations `and`, `or`, `not` etc (or define your own)
+
+* product types with `Struct` that you can accrete and reduce "on fly" (think, as maps on steroids)
+
+* sum types with explicit dispatching that you can use not loosing flexibility (think, as schema's `conditional` on steroids)
+
+* `redined` to glue all the above together (think, as schema's `constrained` on steroids)
+
+And more!
 
 ```clojure
 [com.attendify/schema-refined "0.3.0"]
@@ -31,8 +41,10 @@ to learn more - check out examples :)
 
 ## TODO
 
-- [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`
-- [ ] Define comprehensive set of predicates for numeric types, strings and collections
+- [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`, rename Dispatch to make
+      sure that's clear enoght that we do expect structs (or maps) as options
+- [ ] Define comprehensive set of predicates for numeric types, strings and collections, rethinkg the basic
+      idea behind `refined`, `types` and `predicates`, e.g. when dealing with `Less` or `Greater`
 - [ ] Publish slides from the talk on refinement types and share link here
 - [ ] Fill in "Usage" section in the README
 - [ ] Start CHANGLELOG
@@ -102,6 +114,10 @@ Product types with `r/Struct`:
 ```clojure
 
 ```
+
+### Refined
+
+TBD
 
 ### More?
 
