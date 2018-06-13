@@ -13,28 +13,26 @@
 ;; boolean operations
 ;;
 
-(defn Not [dt]
-  {:pre [(schema? dt)]})
+(defrecord NotSchema [schema])
+
+(defn Not
+  "The value should not conform given schema"
+  [dt]
+  {:pre [(schema? dt)]}
+  (NotSchema. schema))
+
+(defrecord AndSchema [left right name])
 
 (defn And
+  "The value should conform both left and right schemas.
+   The latest schema should not be checked if first validation
+   failed. Optional name might be given to the structure to
+   get better error messages."
   ([dt1 dt2] (And dt1 dt2 nil))
   ([dt1 dt2 name]
    {:pre [(schema? dt1)
-          (schema? dt2)]}))
-
-(defn AllOf
-  ([dts] (AllOf dts nil))
-  ([dts name]))
-
-(defn Xor
-  ([dt1 dt2] (Xor dt1 dt2 nil))
-  ([dt1 dt2 name]
-   {:pre [(schema? dt1)
-          (schema? dt2)]}))
-
-(defn OneOf
-  ([dts] (OneOf dts nil))
-  ([dts name]))
+          (schema? dt2)]}
+   (AndSchema. dt1 dt2 name)))
 
 ;;
 ;; numeric
@@ -233,7 +231,10 @@
 
 (defn NonEmpty [dt]
   {:pre [(schema? dt)]}
-  (s/constrained dt #(not (empty? %)) 'should-contain-at-least-one-element))
+  (s/constrained
+   dt
+   #(not (empty? %))
+   'should-contain-at-least-one-element))
 
 (defn NonEmptyListOf [dt]
   {:pre [(schema? dt)]}
