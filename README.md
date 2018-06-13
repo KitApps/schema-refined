@@ -18,13 +18,11 @@ to learn more - check out examples :)
 
 * Avoid **as many bugs** as possible
 
+* Provide clean and **useful** error messages
+
 ## Talks and Tutorials
 
 * [Keep Your Data Safe with Refinement Types](TBD)
-
-## Usage 
-
-TBD
 
 ## Inspired By
 
@@ -40,7 +38,17 @@ TBD
 - [ ] Fill in "Usage" section in the README
 - [ ] Start CHANGLELOG
 - [ ] Setup CI with public results
+- [ ] Render and release documentation
 - [ ] Release on Clojars
+
+## Usage 
+
+TBD
+
+## Future Versions (a.k.a In Progress)
+
+* Separate "serialization" presentation (basic Scalar types) fro "business" logic and rules with
+  a flexibility to send pointers to all predicates over the wire
 
 ## Contribute
 
