@@ -6,15 +6,21 @@
             [potemkin.collections :refer [def-map-type]])
   (:import (java.net URI URISyntaxException)))
 
+(defn schema? [dt]
+  (satisfies? s/Schema dt))
+
 ;;
 ;; boolean operations
 ;;
 
-(defn Not [dt])
+(defn Not [dt]
+  {:pre [(schema? dt)]})
 
 (defn And
   ([dt1 dt2] (And dt1 dt2 nil))
-  ([dt1 dt2 name]))
+  ([dt1 dt2 name]
+   {:pre [(schema? dt1)
+          (schema? dt2)]}))
 
 (defn AllOf
   ([dts] (AllOf dts nil))
@@ -22,7 +28,9 @@
 
 (defn Xor
   ([dt1 dt2] (Xor dt1 dt2 nil))
-  ([dt1 dt2 name]))
+  ([dt1 dt2 name]
+   {:pre [(schema? dt1)
+          (schema? dt2)]}))
 
 (defn OneOf
   ([dts] (OneOf dts nil))
@@ -33,15 +41,19 @@
 ;;
 
 (defn PositiveOf [dt]
+  {:pre [(schema? dt)]}
   (s/constrained dt pos? 'should-be-positive))
 
 (defn NegativeOf [dt]
-  (s/constrained s/Int neg? 'should-be-negative))
+  {:pre [(schema? dt)]}
+  (s/constrained dt neg? 'should-be-negative))
 
 (defn NonNegativeOf [dt]
+  {:pre [(schema? dt)]}
   (s/constrained dt (complement neg?) 'should-not-be-negative))
 
 (defn NonPositiveOf [dt]
+  {:pre [(schema? dt)]}
   (s/constrained dt (complement pos?) 'should-not-be-positive))
 
 (def PositiveInt (PositiveOf s/Int))
@@ -60,27 +72,44 @@
 
 (def NonPositiveDouble (NonPositiveOf double))
 
-(def Even)
+(def Even (s/pred even?))
 
-(def Odd)
+(def Odd (s/pred odd?))
 
-(defn Modulo [n o])
+(defn Modulo
+  "The value modulus by div = o"
+  [div o]
+  (s/pred #(= o (mod % num))))
 
-(defn Divisible [n])
+(defn Divisible [n]
+  (Modulo n 0))
 
-(defn NonDivisible [n])
+(defn NonDivisible [n]
+  (Not (Divisible n)))
 
 ;;
 ;; ordering
 ;;
 
-(defn Less [n])
+(defn Less
+  "A value that must be < n"
+  [n]
+  (s/pred #(< % n) 'less))
 
-(defn LessOrEqual [n])
+(defn LessOrEqual
+  "A value that must be < n"
+  [n]
+  (s/pred #(<= % n) 'less-or-equal))
 
-(defn Greater [n])
+(defn Greater
+  "A value that must be > n"
+  [n]
+  (s/pred #(> % n) 'greater))
 
-(defn GreaterOrEqual [n])
+(defn GreaterOrEqual
+  "A value that must be >= n"
+  [n]
+  (s/pred #(>= % n) 'greater-or-equal))
 
 (defn OpenInterval [a b])
 
@@ -158,48 +187,60 @@
 ;; collections
 ;;
 
-(defn EmptyCountable [dt])
+(defn EmptyCountable [dt]
+  {:pre [(schema? dt)]}
+  (s/constrained dt #(= 0 (count %)) 'should-be-empty))
 
-(def EmptyList)
+(def EmptyList (EmptyCountable []))
 
-(def EmptySet)
+(def EmptySet (EmptyCountable #{}))
 
-(def EmptyMap)
+(def EmptyMap (EmptyCountable {}))
 
-;; xxx: use pre to ensure that given dt is schema
 (defn NonEmptyCountable [countable-dt]
+  {:pre [(schema? countable-dt)]}
   (s/constrained countable-dt #(pos? (count %)) 'should-contain-at-least-one-element))
 
 (defn NonEmptyListOf [dt]
+  {:pre [(schema? dt)]}
   (NonEmptyCountable [dt]))
 
 (defn NonEmptyMap [key-dt value-dt]
+  {:pre [(schema? key-dt)
+         (schema? value-dt)]}
   (NonEmptyCountable {key-dt value-dt}))
 
 (defn NonEmptySetOf [dt]
+  {:pre [(schema? dt)]}
   (NonEmptyCountable #{dt}))
 
 ;; xxx: what about closed-left and closed-right?
 ;; xxx: reimplement as AND?
 (defn BoundedCountable [dt count-left-bound count-right-bound]
+  {:pre [(schema? dt)]}
   (s/constrained
    dt
    #(<= count-left-bound (count %) count-right-bound)
    'collection-length-should-conform-boundaries))
 
 (defn BoundedListOf [dt left right]
+  {:pre [(schema? dt)]}
   (BoundedCountable [dt] left right))
 
 (defn BoundedSetOf [dt left right]
+  {:pre [(schema? dt)]}
   (BoundedCountable #{dt} left right))
 
 (defn BoundedMapOf [key-dt value-dt]
+  {:pre [(schema? dt)]}
   (BoundedCountable {key-dt value-dt} left right))
 
 (defn SingleValueListOf [dt]
+  {:pre [(schema? dt)]}
   (BoundedListOf dt 1 1))
 
 (defn SingleValueSetOf [dt]
+  {:pre [(schema? dt)]}
   (BoundedSetOf dt 1 1))
 
 ;;
