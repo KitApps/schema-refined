@@ -21,7 +21,7 @@
   {:pre [(schema? dt)]}
   (NotSchema. schema))
 
-(defrecord AndSchema [left right name])
+(defrecord AndSchema [left right])
 
 (defn And
   "The value should conform both left and right schemas.
@@ -32,7 +32,8 @@
   ([dt1 dt2 name]
    {:pre [(schema? dt1)
           (schema? dt2)]}
-   (AndSchema. dt1 dt2 name)))
+   (let [c (AndSchema. dt1 dt2)]
+     (if (nil? name) c (s/named c name)))))
 
 ;;
 ;; numeric
