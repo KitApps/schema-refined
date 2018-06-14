@@ -92,6 +92,7 @@ Even more motivational example:
 (def RouteFromZurichToRome (r/refined Route (r/And (r/First InZurich) (r/Last InRome))))
 
 ;; or even more
+;; note, that predicates are composable
 (def FromZurichToRome (r/And (r/First InZurich) (r/Last InRome)))
 (def RouteFromZurichToRomeWithLess3Hopes
   (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5))))
@@ -144,6 +145,10 @@ To find more examples and use cases, please see doc strings (whenever applicable
 
 * Separate "serialization" presentation (basic Scalar types) fro "business" logic and rules with
   a flexibility to send pointers to all predicates over the wire
+  
+* Maybe we need another way to deal with generics to provide flexibility with higher kinded types
+  (using function to build a new type hides some information about the underlying representation and
+  it's impossible to extend w/o reimplemention)
 
 ## TODO
 
