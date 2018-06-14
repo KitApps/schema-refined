@@ -6,7 +6,7 @@ Type refinement is all about making the types (schemas) more precise to keep you
 All heavy lifting of checking/validation the shape of the data is done by [schema](https://github.com/plumatic/schema) library.
 Here we introduce a few new concepts to make schemas flexible and more expressive:
 
-* `types` are basically schemas (see `Schema` protocol). All operations with types return types, but we're trying to operation with them as with data instead of functions as we can gain a lot from such an approach (`schema` would force you treat you type checks as blackbox)
+* `types` are basically schemas (see `Schema` protocol). All operations with types return types, but we're trying to deal with them as data not just functions. We gain a lot from such approach (`schema` would force you treat you type checks as black boxes)
 
 * `predicates`, like `(LessThan 10)` or `NonEmpty`, that you can combine using logical operations `and`, `or`, `not` etc (or define your own)
 
