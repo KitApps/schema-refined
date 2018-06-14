@@ -246,33 +246,6 @@
 
 (def BitChar #"^[0|1]$")
 
-(defn StartsWith [prefix]
-  (s/constrained
-   s/Str
-   #(cstr/starts-with? % prefix)))
-
-(defn EndsWith [suffix]
-  (s/constrained
-   s/Str
-   #(cstr/ends-with? % suffix)))
-
-(defn Includes [substr]
-  (s/constrained
-   s/Str
-   #(cstr/includes? % substr)))
-
-(def LowerCased
-  (s/constrained
-   s/Str
-   #(= %1 (cstr/lower-case %1))
-   'should-be-lower-cased))
-
-(def UpperCased
-  (s/constrained
-   s/Str
-   #(= %1 (cstr/upper-case %1))
-   'should-be-upper-cased))
-
 (def BitStr #"[0|1]*")
 
 (def IntStr
@@ -316,18 +289,43 @@
    'should-be-parsable-url))
 
 ;;
-;; collections
+;; string predicates
+;;
+
+(defn StartsWith [prefix]
+  (s/constrained
+   s/Str
+   #(cstr/starts-with? % prefix)))
+
+(defn EndsWith [suffix]
+  (s/constrained
+   s/Str
+   #(cstr/ends-with? % suffix)))
+
+(defn Includes [substr]
+  (s/constrained
+   s/Str
+   #(cstr/includes? % substr)))
+
+(def LowerCased
+  (s/constrained
+   s/Str
+   #(= %1 (cstr/lower-case %1))
+   'should-be-lower-cased))
+
+(def UpperCased
+  (s/constrained
+   s/Str
+   #(= %1 (cstr/upper-case %1))
+   'should-be-upper-cased))
+
+;;
+;; collection predicates
 ;;
 
 (defn Empty [dt]
   {:pre [(schema? dt)]}
   (s/constrained dt empty? 'should-be-empty))
-
-(def EmptyList (Empty []))
-
-(def EmptySet (Empty #{}))
-
-(def EmptyMap (Empty {}))
 
 (defn NonEmpty [dt]
   {:pre [(schema? dt)]}
@@ -335,6 +333,42 @@
    dt
    #(not (empty? %))
    'should-contain-at-least-one-element))
+
+(defn BoundedSize [dt count-left-bound count-right-bound]
+  {:pre [(schema? dt)]}
+  (s/constrained
+   dt
+   #(<= count-left-bound (count %) count-right-bound)
+   'collection-length-should-conform-boundaries))
+
+(def UniqueItems
+  (reify Predicate))
+
+(defn Exists [p])
+
+;; head in clojure
+(defn First [p])
+
+(defn Second [p])
+
+(defn Index [n p])
+
+;; tail in clojure
+(defn Rest [p])
+
+(defn Last [p])
+
+(defn Butlast [p])
+
+;;
+;; collection types
+;;
+
+(def EmptyList (Empty []))
+
+(def EmptySet (Empty #{}))
+
+(def EmptyMap (Empty {}))
 
 (defn NonEmptyListOf [dt]
   {:pre [(schema? dt)]}
@@ -348,15 +382,6 @@
 (defn NonEmptySetOf [dt]
   {:pre [(schema? dt)]}
   (NonEmpty #{dt}))
-
-;; xxx: what about closed-left and closed-right?
-;; xxx: reimplement as AND?
-(defn BoundedCountable [dt count-left-bound count-right-bound]
-  {:pre [(schema? dt)]}
-  (s/constrained
-   dt
-   #(<= count-left-bound (count %) count-right-bound)
-   'collection-length-should-conform-boundaries))
 
 (defn BoundedListOf
   ([dt size] (BoundedListOf dt size size))
@@ -390,33 +415,6 @@
          (schema? value-dt)]}
   (BoundedMapOf key-dt value-dt 1))
 
-;;
-;; collection predicates
-;; xxx: how to use them?
-;;
-
-(defn Forall [p])
-
-(defn Exists [p])
-
-;; head in clojure
-(defn First [p])
-
-(defn Second [p])
-
-(defn Index [n p])
-
-;; tail in clojure
-(defn Rest [p])
-
-(defn Last [p])
-
-(defn Butlast [p])
-
-;;
-;; sequence of unique items
-;;
-
 (defn UniqueItemsListOf [dt]
   {:pre [(schema? dt)]}
   (s/constrained
@@ -424,13 +422,6 @@
    #(= (count %1) (count (set %1)))
    'items-should-be-unique))
 
-;; xxx: how to describe that in terms of prev data type
-;;      and not empty predicate?
-;;      what about (And UniqueItemsListOf NonEmpty) ???
-;;      the problem here is that "generic" types work
-;;      as simple function, producing the output right away...
-;;      maybe we need to make a Generic type to track
-;;      dependecies there?
 (defn NonEmptyUniqueItemsListOf [dt]
   {:pre [(schema? dt)]}
   (s/constrained
