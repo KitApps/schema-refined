@@ -54,14 +54,14 @@ Basic primitives, collections and composability:
 
 ```clojure
 ;; "manually" with refined and predicates
-(def Coord (r/refined double (r/OpenClosedInterval -180.0 180.0)))
+(def LatCoord (r/refined double (r/OpenClosedInterval -90.0 90.0)))
 
 ;; the same using built-in types
 ;; (or functions to create types from other types, a.k.a. generics)
-(def Coord (r/OpenClosedIntervalOf double -180.0 180.0))
+(def LngCoord (r/OpenClosedIntervalOf double -180.0 180.0))
 
 ;; Product type using a simple map
-(def GeoPoint {:lat Coord :lng Coord})
+(def GeoPoint {:lat LatCoord :lng LngCoord})
 
 ;; using built-in types
 (def Route (r/BoundedListOf GeoPoint 2 50))
@@ -84,7 +84,7 @@ Even more motivational example:
                :lng (r/refined dobule (r/OpenInterval 8.51 8.57))})
 
 (def InRome {:lat (r/refined double (r/OpenInterval 41.87 41.93))
-             :lng (r/refined double (r/OpenInterval 12.46 12.49))})
+             :lng (r/refined double (r/OpenInterval 12.46 12.51))})
 
 ;; you can use schemas as predicates
 (def RouteFromZurich (r/refined Route (r/First InZurich)))
