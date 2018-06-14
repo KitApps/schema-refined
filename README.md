@@ -80,11 +80,11 @@ Basic primitives, collections and composability:
 Even more motivational example:
 
 ```clojure
-(def InZurich {:lat (r/refined double (r/Epsilon 47.37 0.03))
-               :lng (r/refined dobule (r/Epsilon 8.54 0.03))})
+(def InZurich {:lat (r/refined double (r/OpenInterval 47.34 47.39))
+               :lng (r/refined dobule (r/OpenInterval 8.51 8.57))})
 
-(def InRome {:lat (r/refined double (r/Epsilon 41.90 0.03))
-             :lng (r/refined double (r/Epsilon 12.49 0.03))})
+(def InRome {:lat (r/refined double (r/OpenInterval 41.87 41.93))
+             :lng (r/refined double (r/OpenInterval 12.46 12.49))})
 
 ;; you can use schemas as predicates
 (def RouteFromZurich (r/refined Route (r/First InZurich)))
