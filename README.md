@@ -47,7 +47,7 @@ Get ready!
 
 ```clojure
 (require '[schema-refined.core :as r])
-(require '[schema.core :as s])
+(require '[schema.core :as schema])
 ```
 
 Basic primitives, collections and composability:
@@ -73,9 +73,8 @@ Basic primitives, collections and composability:
             {:lat 51.5085 :lng -0.0762}
             {:lat 40.0086 :lng 28.9802}])
 
-;; Route now is a valis schema,
-;; so you can use it as any other schema
-(s/check Route input)
+;; Route now is a valid schema, so you can use it as any other schema
+(schema/check Route input)
 ```
 
 Even more motivational example:
