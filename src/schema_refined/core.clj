@@ -6,37 +6,155 @@
             [potemkin.collections :refer [def-map-type]])
   (:import (java.net URI URISyntaxException URL MalformedURLException)))
 
+;;
+;; helpers & basic definitions
+;;
+
 (defn schema? [dt]
   (satisfies? s/Schema dt))
+
+(defprotocol Predicate
+  (predicate-apply [this dt])
+  (predicate-exlain [this])
+  ;; xxx: this might be a separate protocol
+  ;; in case we want to have some kind of
+  ;; default error messages (obviously we do)
+  (predicate-error [this value]))
+
+(defrecord FunctionPredicate [pred])
+
+(defn predicate? [p]
+  (satisfies? Predicate p))
+
+(defrecord RefinedSchema [schema pred])
+
+(defn refined [dt pred]
+  {:pre [(schema? dt)
+         (or (predicate? pred)
+             (ifn? pred))]}
+  (let [p (cond
+            (predicate? pred)
+            pred
+
+            (ifn? pred)
+            (FunctionPredicate. pred))]
+    (RefinedSchema. schema p)))
 
 ;;
 ;; boolean operations
 ;;
 
-(defrecord NotSchema [schema])
+(defrecord NotPredicate [p])
 
-(defn Not
-  "The value should not conform given schema"
-  [dt]
-  {:pre [(schema? dt)]}
-  (NotSchema. schema))
+(defn Not [p]
+  {:pre [(predicate? p)]}
+  (NotPredicate. p))
 
-(defrecord AndSchema [left right])
+(defrecord AndPredicate [p1 p2])
 
+;; xxx: we can support > 2 arguments here
 (defn And
-  "The value should conform both left and right schemas.
-   The latest schema should not be checked if first validation
-   failed. Optional name might be given to the structure to
-   get better error messages."
-  ([dt1 dt2] (And dt1 dt2 nil))
-  ([dt1 dt2 name]
-   {:pre [(schema? dt1)
-          (schema? dt2)]}
-   (let [c (AndSchema. dt1 dt2)]
-     (if (nil? name) c (s/named c name)))))
+  "Creates predicate that ensure both predicates given are safisfied"
+  [p1 p2]
+  {:pre [(predicate? p1)
+         (predicate? p2)]}
+  (AndPredicate. p1 p2))
+
+(defrecord OrPredicate [p1 p2])
+
+(defn Or
+  "Create predicate that ensure at least one predicate is satisfied"
+  [p1 p2]
+  {:pre [(predicate? p1)
+         (predicate? p2)]}
+  (OrPredicate. p1 p2))
 
 ;;
-;; numeric
+;; ordering predicates
+;;
+
+(defrecord EqualPredicate [n])
+
+(defn Equal
+  "A value that must be = n"
+  [n]
+  (s/pred #(= % n) 'equal))
+
+(defrecord LessPredicate [n])
+
+(defn Less
+  "A value that must be < n"
+  [n]
+  (s/pred #(< % n) 'less))
+
+(defn LessOrEqual
+  "A value that must be < n"
+  [n]
+  (Or (Less n) (Equal n)))
+
+(defrecord GreaterPredicate [n])
+
+(defn Greater
+  "A value that must be > n"
+  [n]
+  (s/pred #(> % n) 'greater))
+
+(defn GreaterOrEqual
+  "A value that must be >= n"
+  [n]
+  (Or (Greater n) (Equal n)))
+
+;; xxx: reimplement all intervals to have better error
+;;      messages, like "SHOULD BE 0 < % < 10"
+(defn OpenInterval
+  "a < value < b"
+  [a b]
+  {:pre [(< a b)]}
+  (s/pred #(< a % b)))
+
+(defn ClosedInterval
+  "a <= value <= b"
+  [a b]
+  {:pre [(<= a b)]}
+  (s/pred #(<= a % b)))
+
+(defn OpenClosedInterval
+  "a < value <= b"
+  [a b]
+  {:pre [(< a b)]}
+  (s/pred #(and (< a %1) (<= %1 b))))
+
+(defn ClosedOpenInterval
+  "a <= value < b"
+  [a b]
+  {:pre [(< a b)]}
+  (s/pred #(and (<= a %1) (< %1 b))))
+
+(defn Epsilon [center radius]
+  (OpenInterval (- center radius) (+ center radius)))
+
+;;
+;; numeric predicates
+;; xxx: all of them might be both schemas and predicates :thinking:
+;;
+
+(def Even (s/pred even?))
+
+(def Odd (s/pred odd?))
+
+(defn Modulo
+  "The value modulus by div = o"
+  [div o]
+  (s/pred #(= o (mod % num))))
+
+(defn Divisible [n]
+  (Modulo n 0))
+
+(defn NonDivisible [n]
+  (Not (Divisible n)))
+
+;;
+;; numeric types
 ;;
 
 (defn PositiveOf [dt]
@@ -70,71 +188,6 @@
 (def NonNegativeDouble (NonNegativeOf double))
 
 (def NonPositiveDouble (NonPositiveOf double))
-
-(def Even (s/pred even?))
-
-(def Odd (s/pred odd?))
-
-(defn Modulo
-  "The value modulus by div = o"
-  [div o]
-  (s/pred #(= o (mod % num))))
-
-(defn Divisible [n]
-  (Modulo n 0))
-
-(defn NonDivisible [n]
-  (Not (Divisible n)))
-
-;;
-;; ordering
-;;
-
-(defn Less
-  "A value that must be < n"
-  [n]
-  (s/pred #(< % n) 'less))
-
-(defn LessOrEqual
-  "A value that must be < n"
-  [n]
-  (s/pred #(<= % n) 'less-or-equal))
-
-(defn Greater
-  "A value that must be > n"
-  [n]
-  (s/pred #(> % n) 'greater))
-
-(defn GreaterOrEqual
-  "A value that must be >= n"
-  [n]
-  (s/pred #(>= % n) 'greater-or-equal))
-
-;; xxx: reimplement all intervals to have better error
-;;      messages, like "SHOULD BE 0 < % < 10"
-(defn OpenInterval
-  "a < value < b"
-  [a b]
-  {:pre [(< a b)]}
-  (s/pred #(< a % b)))
-
-(defn ClosedInterval
-  "a <= value <= b"
-  [a b]
-  {:pre [(<= a b)]}
-  (s/pred #(<= a % b)))
-
-(defn OpenClosedInterval
-  "a < value <= b"
-  [a b]
-  {:pre [(< a b)]}
-  (s/pred #(and (< a %1) (<= %1 b))))
-
-(defn ClosedOpenInterval
-  "a <= value < b"
-  [a b]
-  {:pre [(< a b)]}
-  (s/pred #(and (<= a %1) (< %1 b))))
 
 (defn OpenIntervalOf
   "a < value < b"
