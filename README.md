@@ -53,13 +53,17 @@ Get ready!
 Basic primitives, collections and composability:
 
 ```clojure
-;; using built-in type builders
+;; "manually" with refined and predicates
+(def Coord (r/refined double (r/OpenClosedInterval -180.0 180.0)))
+
+;; the same using built-in types
+;; (or functions to create types from other types, a.k.a. generics)
 (def Coord (r/OpenClosedIntervalOf double -180.0 180.0))
 
 ;; product type using a simple map
 (def GeoPoint {:lat Coord :lng Coord})
 
-;; using built-in type builders
+;; using built-in types
 (def Route (r/BoundedListOf GeoPoint 2 50))
 
 ;; or same with predicates
