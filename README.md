@@ -90,7 +90,8 @@ Even more motivational example:
 
 ;; or even more
 (def FromZurichToRome (r/And (r/First InZurich) (r/Last InRome)))
-(def RouteFromZurichToRomeWithLess3Hopes (r/refined Route (r/And FromZurichToRome (BoundedSize 2 5))))
+(def RouteFromZurichToRomeWithLess3Hopes
+  (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5))))
 ```
 
 ### Sum Types
