@@ -150,6 +150,8 @@ To find more examples and use cases, please see doc strings (whenever applicable
   (using function to build a new type hides some information about the underlying representation and
   it's impossible to extend w/o reimplemention)
 
+* Try to catch "impossible" predicates (which defines empty sets of values), like `(And (Less 10) (Greater 100))`
+
 ## TODO
 
 - [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`, rename Dispatch to make

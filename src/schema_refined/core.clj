@@ -104,6 +104,12 @@
   [n]
   (Or (Greater n) (Equal n)))
 
+(def Ascending
+  (reify Predicate))
+
+(def Descending
+  (reify Predicate))
+
 ;; xxx: reimplement all intervals to have better error
 ;;      messages, like "SHOULD BE 0 < % < 10"
 (defn OpenInterval
