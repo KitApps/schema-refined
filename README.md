@@ -84,9 +84,9 @@ Even more motivational example:
              :lng (r/refined double (r/Epsilon 12.49 0.03))})
 
 ;; you can use schemas as predicates
-(def RouteFromZurich (refined Route (r/First InZurich)))
-(def RouteToRome (refined Route (r/Last InRome)))
-(def RouteFromZurichToRome (refined Route (r/And (r/First InZurich) (r/Last InRome))))
+(def RouteFromZurich (r/refined Route (r/First InZurich)))
+(def RouteToRome (r/refined Route (r/Last InRome)))
+(def RouteFromZurichToRome (r/refined Route (r/And (r/First InZurich) (r/Last InRome))))
 
 ;; or even more
 (def FromZurichToRome (r/And (r/First InZurich) (r/Last InRome)))
