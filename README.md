@@ -60,7 +60,7 @@ Basic primitives, collections and composability:
 ;; (or functions to create types from other types, a.k.a. generics)
 (def Coord (r/OpenClosedIntervalOf double -180.0 180.0))
 
-;; product type using a simple map
+;; Product type using a simple map
 (def GeoPoint {:lat Coord :lng Coord})
 
 ;; using built-in types
@@ -94,7 +94,7 @@ Even more motivational example:
 ;; or even more
 ;; note, that predicates are composable
 (def FromZurichToRome (r/And (r/First InZurich) (r/Last InRome)))
-(def RouteFromZurichToRomeWithLess3Hopes
+(def RouteFromZurichToRomeWithLess3Hops
   (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5))))
 ```
 
