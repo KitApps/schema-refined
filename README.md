@@ -60,10 +60,10 @@ Basic primitives, collections and composability:
 (def GeoPoint {:lat Coord :lng Coord})
 
 ;; using built-in type builders
-(def Route (r/BoundedListOf GeoPoint 1 50))
+(def Route (r/BoundedListOf GeoPoint 2 50))
 
 ;; or same with predicates
-(def Route (r/refined [GeoPoint] (BoundedSize 1 50)))
+(def Route (r/refined [GeoPoint] (BoundedSize 2 50)))
 
 (def input [{:lat 48.8529 :lng 2.3499}
             {:lat 51.5085 :lng -0.0762}
