@@ -54,7 +54,7 @@
 
 ;; xxx: we can support > 2 arguments here
 (defn And
-  "Creates predicate that ensure both predicates given are safisfied"
+  "Creates predicate that ensures both predicates given are safisfied"
   [p1 p2]
   {:pre [(predicate? p1)
          (predicate? p2)]}
@@ -63,11 +63,21 @@
 (defrecord OrPredicate [p1 p2])
 
 (defn Or
-  "Create predicate that ensure at least one predicate is satisfied"
+  "Creates the predicate that ensures at least one predicate is satisfied"
   [p1 p2]
   {:pre [(predicate? p1)
          (predicate? p2)]}
   (OrPredicate. p1 p2))
+
+(defrecord OnPredicate [fn pred])
+
+(defn On
+  "Creates the predicate to ensure that the result of applying function
+   `fn` to the value satisfies the predicate `pred`"
+  [fn pred]
+  {:pre [(ifn? fn)
+         (predicate? pred)]}
+  (OnPredicate. fn pred))
 
 ;;
 ;; ordering predicates
