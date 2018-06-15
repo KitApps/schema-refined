@@ -9,33 +9,45 @@
 (defmacro not-ok! [dt value]
   `(t/is (some? (s/check ~dt ~value))))
 
+(t/testing "refined"
+  (let [LatCoord (r/refined double (r/OpenClosedInterval -90.0 90.0))
+        LngCoord (r/OpenClosedIntervalOf double -180.0 180.0)
+        GeoPoint {:lat LatCoord :lng LngCoord}
+        Route (r/BoundedListOf GeoPoint 2 50)
+
+        input [{:lat 48.8529 :lng 2.3499}
+               {:lat 51.5085 :lng -0.0762}
+               {:lat 40.0086 :lng 28.9802}]]
+
+    (t/deftest refined-with-built-in-predicates
+      (ok! Route input))
+
+    (t/deftest refined-with-built-in-pred-generics
+      (let [InZurich {:lat (r/refined double (r/OpenInterval 47.34 47.39))
+                      :lng (r/refined double (r/OpenInterval 8.51 8.57))}
+
+            InRome {:lat (r/refined double (r/OpenInterval 41.87 41.93))
+                    :lng (r/refined double (r/OpenInterval 12.46 12.51))}
+
+            RouteFromZurich (r/refined Route (r/First InZurich))
+            RouteToRome (r/refined Route (r/Last InRome))
+            RouteFromZurichToRome (r/refined Route (r/And (r/First InZurich) (r/Last InRome)))
+
+            FromZurichToRome (r/And (r/First InZurich) (r/Last InRome))
+            RouteFromZurichToRomeWithLess3Hops (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5)))]
+        (ok! RouteFromZurichToRomeWithLess3Hops input)))))
+
 (t/deftest validate-non-empty-values
   (ok! r/NonEmptyStr "doom")
-  (ok! (r/NonEmptyList s/Num) [1 2 3])
-  (ok! (r/NonEmptyMap s/Keyword s/Str) {:boom "Doom"})
-  (ok! (r/NonEmptyList r/NonEmptyStr) ["a" "b" "c"])
-  (ok! (r/NonEmptyList (r/NonEmptyList r/NonEmptyStr)) [["a"] ["b" "c"] ["c" "d"]])
-  (ok! (r/NonEmptyOrderedSet s/Num) [1 2 3])
-  (not-ok! (r/NonEmptyList s/Num) [])
-  (not-ok! (r/NonEmptyList s/Num) '())
-  (not-ok! (r/NonEmptyOrderedSet s/Num) [])
+  (ok! (r/NonEmptyListOf s/Num) [1 2 3])
+  (ok! (r/NonEmptyMapOf s/Keyword s/Str) {:boom "Doom"})
+  (ok! (r/NonEmptyListOf r/NonEmptyStr) ["a" "b" "c"])
+  (ok! (r/NonEmptyListOf (r/NonEmptyListOf r/NonEmptyStr)) [["a"] ["b" "c"] ["c" "d"]])
+  (not-ok! (r/NonEmptyListOf s/Num) [])
+  (not-ok! (r/NonEmptyListOf s/Num) '())
   (not-ok! r/NonEmptyStr nil)
   (not-ok! r/NonEmptyStr '())
-  (not-ok! r/NonEmptyStr ""))
-
-(t/deftest validate-orderedset-contains-unique-elements
-  (ok! (r/OrderedSet s/Num) [])
-  (ok! (r/OrderedSet s/Num) [1 2 3])
-  (not-ok! (r/OrderedSet s/Num) [1 1 1]))
-
-(t/deftest validate-typed-ranges
-  (ok! r/Scale 0.0)
-  (ok! r/Scale 1.0)
-  (ok! r/Scale 0.5)
-  (not-ok! r/Scale -1.0)
-  (not-ok! r/Scale 10)
-  (not-ok! r/Scale 0)
-  (not-ok! r/Scale 1)) 
+  (not-ok! r/NonEmptyStr "")) 
 
 (t/deftest validate-urls
   (ok! r/Uri "https://attendify.com")
@@ -43,20 +55,15 @@
   (not-ok! r/Uri "attendify com")
   (not-ok! r/Uri "ftp://"))
 
-(t/deftest validate-coordinates
-  (ok! r/Coordinate 37.5)
-  (ok! r/GeoPoint {:lat 37.5 :lng -77.0})
-  (not-ok! r/Coordinate 360.0))
-
 (t/deftest range-length-string
-  (ok! (r/RangeLengthStr 1 10) "a")
-  (ok! (r/RangeLengthStr 1 10) "abcdeabcde")
-  (ok! (r/RangeLengthStr 1 10) "abcde     ")
-  (not-ok! (r/RangeLengthStr 1 10) "")
-  (not-ok! (r/RangeLengthStr 1 10) "abcdeabcdeabcde")
-  (not-ok! (r/RangeLengthStr 1 10) "abcdeabcde     ")
-  (ok! (r/RangeLengthStr 1 10 true) "abcdeabcde     ")
-  (not-ok! (r/RangeLengthStr 1 10 true) " "))
+  (ok! (r/BoundedLengthStr 1 10) "a")
+  (ok! (r/BoundedLengthStr 1 10) "abcdeabcde")
+  (ok! (r/BoundedLengthStr 1 10) "abcde     ")
+  (not-ok! (r/BoundedLengthStr 1 10) "")
+  (not-ok! (r/BoundedLengthStr 1 10) "abcdeabcdeabcde")
+  (not-ok! (r/BoundedLengthStr 1 10) "abcdeabcde     ")
+  (ok! (r/BoundedLengthStr 1 10 true) "abcdeabcde     ")
+  (not-ok! (r/BoundedLengthStr 1 10 true) " "))
 
 (def -Ticket (r/Struct :id r/NonEmptyStr
                         :rev r/NonEmptyStr
@@ -92,7 +99,7 @@
 ;; still struct
 (def DiscountCode (assoc -BaseCode
                          :codeType (s/eq "discount")
-                         :discountPercent (r/TypedRange int 0 100)))
+                         :discountPercent (r/ClosedIntervalOf int 0 100)))
 
 ;; should be converted to strct inside Dispatch
 (def SecretCode {:codeType (s/eq "secret")
