@@ -393,52 +393,76 @@
 (def UniqueItems
   (FunctionPredicate. #(= (count %1) (set (count %1)))))
 
-(defrecord ForallPredicate [pred])
+(defrecord ForallPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (every? pred value)))
 
 (defn Forall [p]
   {:pre [(predicate? p)]}
   (ForallPredicate. p))
 
-(defrecord ExistsPredicate [pred])
+(defrecord ExistsPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (not (nil? (some? pred value)))))
 
 (defn Exists [p]
   {:pre [(predicate? p)]}
   (ExistsPredicate. p))
 
-(defrecord FirstPredicate [pred])
+(defrecord FirstPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (pred (first value))))
 
 ;; head in clojure
 (defn First [p]
   {:pre [(predicate? p)]}
   (FirstPredicate. p))
 
-(defrecord SecondPredicate [pred])
+(defrecord SecondPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (pred (second value))))
 
 (defn Second [p]
   {:pre [(predicate? p)]}
   (SecondPredicate. p))
 
-(defrecord IndexPredicate [n pred])
+(defrecord IndexPredicate [n pred]
+  Predicate
+  (predicate-apply [_ value]
+    (pred (nth value n))))
 
 (defn Index [n p]
   {:pre [(int? n)
          (predicate? p)]}
   (IndexPredicate. n p))
 
-(defrecord RestPredicate [pred])
+(defrecord RestPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (every? pred (rest value))))
 
 ;; tail in clojure
 (defn Rest [p]
   {:pre [(predicate? p)]}
   (RestPredicate. p))
 
-(defrecord LastPredicate [pred])
+(defrecord LastPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (pred (last value))))
 
 (defn Last [p]
   {:pre [(predicate? p)]}
   (LastPredicate. p))
 
-(defrecord ButlastPredicate [pred])
+(defrecord ButlastPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (every? pred (butlast value))))
 
 (defn Butlast [p]
   {:pre [(predicate? p)]}
@@ -501,17 +525,11 @@
 
 (defn UniqueItemsListOf [dt]
   {:pre [(schema? dt)]}
-  (s/constrained
-   [dt]
-   #(= (count %1) (count (set %1)))
-   'items-should-be-unique))
+  (refined [dt] UniqueItems))
 
 (defn NonEmptyUniqueItemsListOf [dt]
   {:pre [(schema? dt)]}
-  (s/constrained
-   (UniqueItemsListOf dt)
-   #(not (empty? %))
-   'should-not-be-empty))
+  (refined (UniqueItemsListOf dt) NonEmpty))
 
 ;;
 ;; maps
