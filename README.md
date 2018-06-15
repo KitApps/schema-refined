@@ -81,7 +81,7 @@ Even more motivational example:
 
 ```clojure
 (def InZurich {:lat (r/refined double (r/OpenInterval 47.34 47.39))
-               :lng (r/refined dobule (r/OpenInterval 8.51 8.57))})
+               :lng (r/refined double (r/OpenInterval 8.51 8.57))})
 
 (def InRome {:lat (r/refined double (r/OpenInterval 41.87 41.93))
              :lng (r/refined double (r/OpenInterval 12.46 12.51))})
