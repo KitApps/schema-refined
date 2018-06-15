@@ -130,14 +130,14 @@
 (defn Equal
   "A value that must be = n"
   [n]
-  (s/pred #(= % n) 'equal))
+  (FunctionPredicate. #(= % n)))
 
 (defrecord LessPredicate [n])
 
 (defn Less
   "A value that must be < n"
   [n]
-  (s/pred #(< % n) 'less))
+  (FunctionPredicate. #(< % n)))
 
 (defn LessOrEqual
   "A value that must be < n"
@@ -149,7 +149,7 @@
 (defn Greater
   "A value that must be > n"
   [n]
-  (s/pred #(> % n) 'greater))
+  (FunctionPredicate. #(> % n)))
 
 (defn GreaterOrEqual
   "A value that must be >= n"
@@ -192,17 +192,16 @@
 
 ;;
 ;; numeric predicates
-;; xxx: all of them might be both schemas and predicates :thinking:
 ;;
 
-(def Even (s/pred even?))
+(def Even (FunctionPredicate. even?))
 
-(def Odd (s/pred odd?))
+(def Odd (FunctionPredicate. odd?))
 
 (defn Modulo
   "The value modulus by div = o"
   [div o]
-  (s/pred #(= o (mod % num))))
+  (FunctionPredicate. #(= o (mod % num))))
 
 (defn Divisible [n]
   (Modulo n 0))
@@ -214,22 +213,21 @@
 ;; numeric types
 ;;
 
-;; xxx: replace constrained with refined!
 (defn PositiveOf [dt]
   {:pre [(schema? dt)]}
-  (s/constrained dt pos? 'should-be-positive))
+  (refined dt (Greater 0)))
 
 (defn NegativeOf [dt]
   {:pre [(schema? dt)]}
-  (s/constrained dt neg? 'should-be-negative))
+  (refined dt (Less 0)))
 
 (defn NonNegativeOf [dt]
   {:pre [(schema? dt)]}
-  (s/constrained dt (complement neg?) 'should-not-be-negative))
+  (refined dt (GreaterOrEqual 0)))
 
 (defn NonPositiveOf [dt]
   {:pre [(schema? dt)]}
-  (s/constrained dt (complement pos?) 'should-not-be-positive))
+  (refined dt (LessOrEqual 0)))
 
 (def PositiveInt (PositiveOf s/Int))
 
