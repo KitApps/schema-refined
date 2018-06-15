@@ -1,6 +1,7 @@
 (ns schema-refined.core
   (:require [schema.core :as s]
             [schema.spec.core :as schema-spec]
+            [schema.spec.variant :as schema-variant]
             [schema.utils :as schema-utils]
             [clojure.string :as cstr]
             [potemkin.collections :refer [def-map-type]])
@@ -14,43 +15,78 @@
   (satisfies? s/Schema dt))
 
 (defprotocol Predicate
-  (predicate-apply [this dt])
-  (predicate-exlain [this])
+  (predicate-apply [this value])
+  ;; xxx: implement to have better error messages
+  #_(predicate-exlain [this])
   ;; xxx: this might be a separate protocol
   ;; in case we want to have some kind of
   ;; default error messages (obviously we do)
-  (predicate-error [this value]))
-
-(defrecord FunctionPredicate [pred])
+  #_(predicate-error [this value]))
 
 (defn predicate? [p]
   (satisfies? Predicate p))
 
-(defrecord RefinedSchema [schema pred])
+(defrecord FunctionPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (pred value)))
 
-(defn refined [dt pred]
+(defrecord SchemaPredicate [schema]
+  Predicate
+  (predicate-apply [_ value]
+    (nil? (s/check schema value))))
+
+(defrecord RefinedSchema [schema pred]
+  s/Schema
+  (spec [this]
+    (schema-variant/variant-spec
+     schema-spec/+no-precondition+
+     [{:schema schema}]
+     nil
+     (schema-spec/precondition
+      this
+      (partial predicate-apply pred)
+      #(list (symbol (schema-utils/fn-name pred)) %))))
+  (explain [_] (list 'refined (s/explain schema) (symbol (schema-utils/fn-name pred)))))
+
+(defn refined
+  "Takes type (schema) and a predicate, creating a type that
+   should satisfy both basic type and predicate. Note, that predicate might be
+   specified as Predicate (protocol), simple function from `dt` type
+   to boolean or another type (schema)"
+  [dt pred]
   {:pre [(schema? dt)
          (or (predicate? pred)
-             (ifn? pred))]}
+             (ifn? pred)
+             (schema? pred))]}
   (let [p (cond
             (predicate? pred)
             pred
 
             (ifn? pred)
-            (FunctionPredicate. pred))]
-    (RefinedSchema. schema p)))
+            (FunctionPredicate. pred)
+
+            (schema? pred)
+            (SchemaPredicate. pred))]
+    (RefinedSchema. dt p)))
 
 ;;
 ;; boolean operations
 ;;
 
-(defrecord NotPredicate [p])
+(defrecord NotPredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (not (pred value))))
 
 (defn Not [p]
   {:pre [(predicate? p)]}
   (NotPredicate. p))
 
-(defrecord AndPredicate [p1 p2])
+(defrecord AndPredicate [p1 p2]
+  Predicate
+  (predicate-apply [_ value]
+    (and (p1 value) (p2 value))))
 
 ;; xxx: we can support > 2 arguments here
 (defn And
@@ -60,7 +96,10 @@
          (predicate? p2)]}
   (AndPredicate. p1 p2))
 
-(defrecord OrPredicate [p1 p2])
+(defrecord OrPredicate [p1 p2]
+  Predicate
+  (predicate-apply [_ value]
+    (or (p1 value) (p2 value))))
 
 (defn Or
   "Creates the predicate that ensures at least one predicate is satisfied"
@@ -69,15 +108,18 @@
          (predicate? p2)]}
   (OrPredicate. p1 p2))
 
-(defrecord OnPredicate [fn pred])
+(defrecord OnPredicate [on-fn pred]
+  Predicate
+  (predicate-apply [_ value]
+    (pred (on-fn value))))
 
 (defn On
   "Creates the predicate to ensure that the result of applying function
-   `fn` to the value satisfies the predicate `pred`"
-  [fn pred]
-  {:pre [(ifn? fn)
+   `on-fn` to the value satisfies the predicate `pred`"
+  [on-fn pred]
+  {:pre [(ifn? on-fn)
          (predicate? pred)]}
-  (OnPredicate. fn pred))
+  (OnPredicate. on-fn pred))
 
 ;;
 ;; ordering predicates
@@ -120,31 +162,30 @@
 (def Descending
   (reify Predicate))
 
-;; xxx: reimplement all intervals to have better error
-;;      messages, like "SHOULD BE 0 < % < 10"
+;; xxx: reimplement intervals with records
 (defn OpenInterval
   "a < value < b"
   [a b]
   {:pre [(< a b)]}
-  (s/pred #(< a % b)))
+  (FunctionPredicate. #(< a % b)))
 
 (defn ClosedInterval
   "a <= value <= b"
   [a b]
   {:pre [(<= a b)]}
-  (s/pred #(<= a % b)))
+  (FunctionPredicate. #(<= a % b)))
 
 (defn OpenClosedInterval
   "a < value <= b"
   [a b]
   {:pre [(< a b)]}
-  (s/pred #(and (< a %1) (<= %1 b))))
+  (FunctionPredicate. #(and (< a %1) (<= %1 b))))
 
 (defn ClosedOpenInterval
   "a <= value < b"
   [a b]
   {:pre [(< a b)]}
-  (s/pred #(and (<= a %1) (< %1 b))))
+  (FunctionPredicate. #(and (<= a %1) (< %1 b))))
 
 (defn Epsilon [center radius]
   (OpenInterval (- center radius) (+ center radius)))
@@ -173,6 +214,7 @@
 ;; numeric types
 ;;
 
+;; xxx: replace constrained with refined!
 (defn PositiveOf [dt]
   {:pre [(schema? dt)]}
   (s/constrained dt pos? 'should-be-positive))
@@ -209,25 +251,25 @@
   "a < value < b"
   [dt a b]
   {:pre [(schema? dt)]}
-  (And dt (OpenInterval a b)))
+  (refined dt (OpenInterval a b)))
 
 (defn ClosedIntervalOf
   "a <= value <= b"
   [dt a b]
   {:pre [(schema? dt)]}
-  (And dt (ClosedInterval a b)))
+  (refined dt (ClosedInterval a b)))
 
 (defn OpenClosedIntervalOf
   "a < value <= b"
   [dt a b]
   {:pre [(schema? dt)]}
-  (And dt (OpenClosedInterval a b)))
+  (refined dt (OpenClosedInterval a b)))
 
 (defn ClosedOpenIntervalOf
   "a <= value < b"
   [dt a b]
   {:pre [(schema? dt)]}
-  (And dt (ClosedOpenInterval a b)))
+  (refined dt (ClosedOpenInterval a b)))
 
 ;;
 ;; strings & chars
@@ -333,84 +375,116 @@
 ;; collection predicates
 ;;
 
-(defn Empty [dt]
-  {:pre [(schema? dt)]}
-  (s/constrained dt empty? 'should-be-empty))
+;; xxx: reimplement Empty/NonEmpty with reify
+(def Empty
+  (FunctionPredicate. empty?))
 
-(defn NonEmpty [dt]
-  {:pre [(schema? dt)]}
-  (s/constrained
-   dt
-   #(not (empty? %))
-   'should-contain-at-least-one-element))
+(def NonEmpty
+  (FunctionPredicate. #(not (empty? %))))
 
-(defn BoundedSize [dt count-left-bound count-right-bound]
-  {:pre [(schema? dt)]}
-  (s/constrained
-   dt
-   #(<= count-left-bound (count %) count-right-bound)
-   'collection-length-should-conform-boundaries))
+(defn BoundedSize [left right]
+  {:pre [(int? left)
+         (int? right)
+         (pos? left)
+         (pos? right)]}
+  (On count (ClosedInterval left right)))
 
+;; xxx: use reify
 (def UniqueItems
-  (reify Predicate))
+  (FunctionPredicate. #(= (count %1) (set (count %1)))))
 
-(defn Exists [p])
+(defrecord ForallPredicate [pred])
+
+(defn Forall [p]
+  {:pre [(predicate? p)]}
+  (ForallPredicate. p))
+
+(defrecord ExistsPredicate [pred])
+
+(defn Exists [p]
+  {:pre [(predicate? p)]}
+  (ExistsPredicate. p))
+
+(defrecord FirstPredicate [pred])
 
 ;; head in clojure
-(defn First [p])
+(defn First [p]
+  {:pre [(predicate? p)]}
+  (FirstPredicate. p))
 
-(defn Second [p])
+(defrecord SecondPredicate [pred])
 
-(defn Index [n p])
+(defn Second [p]
+  {:pre [(predicate? p)]}
+  (SecondPredicate. p))
+
+(defrecord IndexPredicate [n pred])
+
+(defn Index [n p]
+  {:pre [(int? n)
+         (predicate? p)]}
+  (IndexPredicate. n p))
+
+(defrecord RestPredicate [pred])
 
 ;; tail in clojure
-(defn Rest [p])
+(defn Rest [p]
+  {:pre [(predicate? p)]}
+  (RestPredicate. p))
 
-(defn Last [p])
+(defrecord LastPredicate [pred])
 
-(defn Butlast [p])
+(defn Last [p]
+  {:pre [(predicate? p)]}
+  (LastPredicate. p))
+
+(defrecord ButlastPredicate [pred])
+
+(defn Butlast [p]
+  {:pre [(predicate? p)]}
+  (ButlastPredicate. p))
 
 ;;
 ;; collection types
 ;;
 
-(def EmptyList (Empty []))
+(def EmptyList (refined [] Empty))
 
-(def EmptySet (Empty #{}))
+(def EmptySet (refined #{} Empty))
 
-(def EmptyMap (Empty {}))
+(def EmptyMap (refined {} Empty))
 
 (defn NonEmptyListOf [dt]
   {:pre [(schema? dt)]}
-  (NonEmpty [dt]))
+  (refined [dt] NonEmpty))
 
-(defn NonEmptyMap [key-dt value-dt]
+(defn NonEmptyMapOf [key-dt value-dt]
   {:pre [(schema? key-dt)
          (schema? value-dt)]}
-  (NonEmpty {key-dt value-dt}))
+  (refined {key-dt value-dt} NonEmpty))
 
 (defn NonEmptySetOf [dt]
   {:pre [(schema? dt)]}
-  (NonEmpty #{dt}))
+  (refined #{dt} NonEmpty))
 
 (defn BoundedListOf
   ([dt size] (BoundedListOf dt size size))
   ([dt left right]
    {:pre [(schema? dt)]}
-   (BoundedCountable [dt] left right)))
+   (refined [dt] (BoundedSize left right))))
 
 (defn BoundedSetOf
   ([dt size] (BoundedSetOf dt size size))
   ([dt left right]
    {:pre [(schema? dt)]}
-   (BoundedCountable #{dt} left right)))
+   (refined #{dt} (BoundedSize left right))))
 
 (defn BoundedMapOf
   ([key-dt value-dt size] (BoundedMapOf key-dt value-dt size size))
   ([key-dt value-dt left right]
    {:pre [(schema? key-dt)
           (schema? value-dt)]}
-   (BoundedCountable {key-dt value-dt} left right)))
+   (refined {key-dt value-dt} (BoundedSize left right))))
 
 (defn SingleValueListOf [dt]
   {:pre [(schema? dt)]}
