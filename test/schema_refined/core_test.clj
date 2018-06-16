@@ -15,9 +15,9 @@
         GeoPoint {:lat LatCoord :lng LngCoord}
         Route (r/BoundedListOf GeoPoint 2 50)
 
-        input [{:lat 48.8529 :lng 2.3499}
+        input [{:lat 47.3529 :lng 8.5199}
                {:lat 51.5085 :lng -0.0762}
-               {:lat 40.0086 :lng 28.9802}]]
+               {:lat 41.8705 :lng 12.4750}]]
 
     (t/deftest refined-with-built-in-predicates
       (ok! Route input))
@@ -35,6 +35,7 @@
 
             FromZurichToRome (r/And (r/First InZurich) (r/Last InRome))
             RouteFromZurichToRomeWithLess3Hops (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5)))]
+        (ok! RouteFromZurichToRome input)
         (ok! RouteFromZurichToRomeWithLess3Hops input)))))
 
 (t/deftest validate-non-empty-values
