@@ -50,7 +50,19 @@ Get ready!
 (require '[schema.core :as schema])
 ```
 
-Basic primitives, collections and composability:
+## Refined
+
+`schema-refined.core/refined` is a supercharged version of `schema.core/constrained`. This function takes
+two params: a **type** (which should be a valid schema) and a **predicate** (which should either satisfy
+`schema-refiend.core/Predicate` protocol or be a function from value of given **type** to boolean) and
+returns a schema that checks both that "basic" schema (given as a **type**) is satisfied and the predicates
+returns `true` for this specific value. You can also use another schema as a predicate. There are a lot of
+built-in **predicates**, please check the listing below. **Predicates** are very composable, you can create
+a new one from existing using logical rules `And`, `Or`, `Not` and `On` (checks predicate after applying to
+the value given function). There're also a few high-level predicaetes to deal with collections, like `Forall`,
+`First`, `Last` etc.
+
+Motivational example.
 
 ```clojure
 ;; "manually" with refined and predicates
@@ -77,7 +89,7 @@ Basic primitives, collections and composability:
 (schema/check Route input)
 ```
 
-Even more motivational example:
+Even more motivational example.
 
 ```clojure
 (def InZurich {:lat (r/refined double (r/OpenInterval 47.34 47.39))
@@ -97,6 +109,15 @@ Even more motivational example:
 (def RouteFromZurichToRomeWithLess3Hops
   (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5))))
 ```
+
+## Naming Convention
+
+The library follows a few rules on how names are made, so it's easier to make sense of types and predicates:
+
+* function that takes **type** (schema) to create refined version has `Of` suffix. E.g. `NonEmptyListOf`
+
+* specific refined **type** has suffix of a basic **type**, predicates are suffix-free. E.g. `LowerCased` is
+  a **predicate**, `LowerCasedStr` is a **type**
 
 ### Sum Types
 
@@ -127,15 +148,77 @@ to decide on the branch (option).
 
 ### Product Types
 
-Product types with `r/Struct`:
+`schema-refined.core/Struct` creates a **product type** which works like a simple map, but can be flexible
+refined with `schema-refined.core/guard`. Guarded struct still can be changed "on fly" using `assoc` (think:
+adding a new **field** to the **record**) and `dissoc` (think: removing specific **field** from the **record**).
 
 ```clojure
+(def -FreeTicket (Struct
+                   :id Id
+                   :type (s/eq "free")
+                   :title NonEmptyStr
+                   :quantity (OpenIntervalOf 1 1e4)
+                   :description (s/maybe NonEmptyStr)
+                   :status (s/enum :open :closed)))
 
+(def FreeTicket (guard -FreeTicket '(:quantity :status) enough-sits-when-open))
+
+;; #<StructMap {:description (constrained Str should-not-be-blank)
+;;              :type (eq "free")
+;;              :title (constrained Str should-not-be-blank)
+;;              :status (enum :open :closed)
+;;              :id java.lang.String
+;;              :quantity (constrained int should-be-bounded-by-range-given)}
+;;   Guarded with
+;;     enough-sits-when-open over '(:quantity :status)>
 ```
 
-### Refined
+You can easily extend the **type** now:
 
-TBD
+```clojure
+(def -PaidTicket (assoc FreeTicket
+                        :type (s/eq "paid")
+                        :priceInCents PositiveInt
+                        :taxes [Tax]
+                        :fees (s/enum :absorb :pass)))
+
+(def PaidTicket
+  (guard -PaidTicket '(:taxes :fees) pass-tax-included))
+
+;; #<StructMap {...}
+;;   Guarded with
+;;     enough-sits-when-open over '(:quantity :status)
+;;     pass-tax-included over '(:taxes :fees)>
+```
+
+and reduce:
+
+```clojure
+(dissoc PaidTicket :status) 
+
+;; #<StructMap {...}
+;;   Guarded with
+;;     pass-tax-included over '(:taxes :fees)>
+
+;; (only one guard left)
+```
+
+`schema-refined.core/StructDispatch` provides you the same functionality as `schema-refined.core/dispatch-on`,
+but the resulting **type** behaves list a one created with `schema-refined.core/Struct`.
+
+```clojure
+(def Ticket (Dispatch :type
+              "free" FreeTicket
+              "paid" PaidTicket))
+
+;; #<StructDispatch on '(:type):
+;;     free => {...}
+;;     paid => {...}>
+
+;; note, that when using `schema.core/conditional` the following would not
+;; give you intended result! but it works as expected here
+(def CreateTicketRequest (dissoc Ticket :id :status))
+```
 
 ### More?
 
