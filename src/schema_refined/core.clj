@@ -49,26 +49,30 @@
       #(list (symbol (schema-utils/fn-name pred)) %))))
   (explain [_] (list 'refined (s/explain schema) (symbol (schema-utils/fn-name pred)))))
 
+(defn coerce
+  "Turn function or schema to appropriate predicates"
+  [pred]
+  {:pre [(or (predicate? pred)
+             (ifn? pred)
+             (schema? pred))]}
+  (cond
+    (predicate? pred)
+    pred
+
+    (schema? pred)
+    (SchemaPredicate. pred)
+
+    (ifn? pred)
+    (FunctionPredicate. pred)))
+
 (defn refined
   "Takes type (schema) and a predicate, creating a type that
    should satisfy both basic type and predicate. Note, that predicate might be
    specified as Predicate (protocol), simple function from `dt` type
    to boolean or another type (schema)"
   [dt pred]
-  {:pre [(schema? dt)
-         (or (predicate? pred)
-             (ifn? pred)
-             (schema? pred))]}
-  (let [p (cond
-            (predicate? pred)
-            pred
-
-            (ifn? pred)
-            (FunctionPredicate. pred)
-
-            (schema? pred)
-            (SchemaPredicate. pred))]
-    (RefinedSchema. dt p)))
+  {:pre [(schema? dt)]}
+  (RefinedSchema. dt (coerce pred)))
 
 ;;
 ;; boolean operations
@@ -77,49 +81,43 @@
 (defrecord NotPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (not (pred value))))
+    (not (predicate-apply pred value))))
 
 (defn Not [p]
-  {:pre [(predicate? p)]}
-  (NotPredicate. p))
+  (NotPredicate. (coerce p)))
 
 (defrecord AndPredicate [p1 p2]
   Predicate
   (predicate-apply [_ value]
-    (and (p1 value) (p2 value))))
+    (and (predicate-apply p1 value) (predicate-apply p2 value))))
 
 ;; xxx: we can support > 2 arguments here
 (defn And
   "Creates predicate that ensures both predicates given are safisfied"
   [p1 p2]
-  {:pre [(predicate? p1)
-         (predicate? p2)]}
-  (AndPredicate. p1 p2))
+  (AndPredicate. (coerce p1) (coerce p2)))
 
 (defrecord OrPredicate [p1 p2]
   Predicate
   (predicate-apply [_ value]
-    (or (p1 value) (p2 value))))
+    (or (predicate-apply p1 value) (predicate-apply p2 value))))
 
 (defn Or
   "Creates the predicate that ensures at least one predicate is satisfied"
   [p1 p2]
-  {:pre [(predicate? p1)
-         (predicate? p2)]}
-  (OrPredicate. p1 p2))
+  (OrPredicate. (coerce p1) (coerce p2)))
 
 (defrecord OnPredicate [on-fn pred]
   Predicate
   (predicate-apply [_ value]
-    (pred (on-fn value))))
+    (predicate-apply pred (on-fn value))))
 
 (defn On
   "Creates the predicate to ensure that the result of applying function
    `on-fn` to the value satisfies the predicate `pred`"
   [on-fn pred]
-  {:pre [(ifn? on-fn)
-         (predicate? pred)]}
-  (OnPredicate. on-fn pred))
+  {:pre [(ifn? on-fn)]}
+  (OnPredicate. on-fn (coerce pred)))
 
 ;;
 ;; ordering predicates
@@ -279,7 +277,6 @@
    #(not (cstr/blank? %))
    'should-not-be-blank))
 
-;; :thinking: can be implemented with AND, not s/constrained
 (defn BoundedLengthStr
   ([min max] (BoundedLengthStr min max false))
   ([min max trimmed?]
@@ -394,77 +391,69 @@
 (defrecord ForallPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (every? pred value)))
+    (every? (partial predicate-apply pred) value)))
 
 (defn Forall [p]
-  {:pre [(predicate? p)]}
-  (ForallPredicate. p))
+  (ForallPredicate. (coerce p)))
 
 (defrecord ExistsPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (not (nil? (some? pred value)))))
+    (not (nil? (some? (partial predicate-apply pred) value)))))
 
 (defn Exists [p]
-  {:pre [(predicate? p)]}
-  (ExistsPredicate. p))
+  (ExistsPredicate. (coerce p)))
 
 (defrecord FirstPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (pred (first value))))
+    (predicate-apply pred (first value))))
 
 ;; head in clojure
 (defn First [p]
-  {:pre [(predicate? p)]}
-  (FirstPredicate. p))
+  (FirstPredicate. (coerce p)))
 
 (defrecord SecondPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (pred (second value))))
+    (predicate-apply pred (second value))))
 
 (defn Second [p]
-  {:pre [(predicate? p)]}
-  (SecondPredicate. p))
+  (SecondPredicate. (coerce p)))
 
 (defrecord IndexPredicate [n pred]
   Predicate
   (predicate-apply [_ value]
-    (pred (nth value n))))
+    (predicate-apply pred (nth value n))))
 
 (defn Index [n p]
-  {:pre [(int? n)
-         (predicate? p)]}
-  (IndexPredicate. n p))
+  {:pre [(int? n)]}
+  (IndexPredicate. n (coerce p)))
 
 (defrecord RestPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (every? pred (rest value))))
+    (every? (partial predicate-apply pred) (rest value))))
 
 ;; tail in clojure
 (defn Rest [p]
-  {:pre [(predicate? p)]}
-  (RestPredicate. p))
+  (RestPredicate. (coerce p)))
 
 (defrecord LastPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (pred (last value))))
+    (predicate-apply pred (last value))))
 
 (defn Last [p]
-  {:pre [(predicate? p)]}
-  (LastPredicate. p))
+  (LastPredicate. (coerce p)))
 
 (defrecord ButlastPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (every? pred (butlast value))))
+    (every? (partial predicate-apply pred) (butlast value))))
 
 (defn Butlast [p]
-  {:pre [(predicate? p)]}
-  (ButlastPredicate. p))
+  (ButlastPredicate. (coerce p)))
 
 ;;
 ;; collection types
