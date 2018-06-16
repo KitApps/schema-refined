@@ -106,16 +106,16 @@
 (def SecretCode {:codeType (s/eq "secret")
                  :noValues r/NonEmptyStr})
 
-(def Code (r/Dispatch
+(def Code (r/StructDispatch
            :codeType
            "unlock" UnlockCode
            "discount" DiscountCode
            "secret" SecretCode
-           "downstream" (r/Dispatch
+           "downstream" (r/StructDispatch
                          :fromDownstream
                          false {:fromDownstream (s/eq false)}
                          true {:fromDownstream (s/eq true)})
-           "customSlice" (assoc (r/Dispatch
+           "customSlice" (assoc (r/StructDispatch
                                  '(:name)
                                  (fn [{:keys [name]}] (inc (count name)))
                                  1 {:name r/NonEmptyStr}
@@ -123,7 +123,7 @@
                                 :codeType
                                 (s/eq "customSlice"))))
 
-(def CounterWithElse (r/Dispatch
+(def CounterWithElse (r/StructDispatch
                       :num
                       1 {:num (s/eq 1)}
                       2 {:num (s/eq 2)}
@@ -155,7 +155,7 @@
 
   (t/testing "dispatch with duplicated options"
     (t/is (thrown? IllegalArgumentException
-                   (r/Dispatch
+                   (r/StructDispatch
                     :fromDownstream
                     true {:fromDownstream (s/eq false)}
                     true {:fromDownstream (s/eq true)}))))

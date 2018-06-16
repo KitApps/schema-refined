@@ -688,15 +688,15 @@
    schema
    guards))
 
-(def-map-type StructDispatch [keys-slice
-                              downstream-slice
-                              dispatch-fn
-                              options
-                              guards
-                              updates
-                              mta]
+(def-map-type StructDispatchMap [keys-slice
+                                 downstream-slice
+                                 dispatch-fn
+                                 options
+                                 guards
+                                 updates
+                                 mta]
   (meta [_] mta)
-  (with-meta [_ m] (StructDispatch.
+  (with-meta [_ m] (StructDispatchMap.
                     keys-slice
                     downstream-slice
                     dispatch-fn
@@ -705,7 +705,7 @@
                     updates
                     m))
   (keys [_] (keys (apply-struct-updates-to updates {})))
-  (assoc [_ k v] (StructDispatch.
+  (assoc [_ k v] (StructDispatchMap.
                   keys-slice
                   downstream-slice
                   dispatch-fn
@@ -729,7 +729,7 @@
                          "relies on the key '" k "'. Sorry, but I cannot take a risk here.")))
 
             :else
-            (StructDispatch.
+            (StructDispatchMap.
              keys-slice
              downstream-slice
              dispatch-fn
@@ -739,8 +739,8 @@
              mta)))
   (get [_ k default-value] (get (apply-struct-updates-to updates {}) k default-value)))
 
-(defmethod print-method StructDispatch
-  [^StructDispatch struct ^java.io.Writer writer]
+(defmethod print-method StructDispatchMap
+  [^StructDispatchMap struct ^java.io.Writer writer]
   (let [options (->> (.options struct)
                      (map (fn [[value option]]
                             (format "    %s => %s" value option)))
@@ -753,10 +753,10 @@
                   guarded)]
     (.write writer f)))
 
-(extend-type StructDispatch
+(extend-type StructDispatchMap
   Guardable
-  (append-guard [^StructDispatch this guard]
-    (StructDispatch.
+  (append-guard [^StructDispatchMap this guard]
+    (StructDispatchMap.
      (.keys-slice this)
      (.downstream-slice this)
      (.dispatch-fn this)
@@ -764,15 +764,15 @@
      (conj (.guards this) guard)
      (.updates this)
      (.mta this)))
-  (get-guards [^StructDispatch this] (.guards this))
+  (get-guards [^StructDispatchMap this] (.guards this))
   s/Schema
   (spec [this] this)
-  (explain [^StructDispatch this]
+  (explain [^StructDispatchMap this]
     (cons 'struct-dispatch (map s/explain (map second (.options this)))))
   schema-spec/CoreSpec
-  (subschemas [^StructDispatch this]
+  (subschemas [^StructDispatchMap this]
     (map second (.options this)))
-  (checker [^StructDispatch this params]
+  (checker [^StructDispatchMap this params]
     (fn [x]
       (let [dispatch-value ((.dispatch-fn this) (select-keys x (.keys-slice this)))
             dispatch-schema (or (->> (.options this)
@@ -792,7 +792,7 @@
                 checker (schema-spec/sub-checker {:schema dispatch-schema'} params)]
             (checker x)))))))
 
-(defn Dispatch
+(defn StructDispatch
   "Works the same way as `dispatch-on` but creates a data structure similar to struct
    that might be updated with assoc/dissoc and guarded using `guard` function to created
    delayed contrains.
@@ -819,7 +819,7 @@
                        (partition 2)
                        (map (fn [[k v]]
                               (cond
-                                (instance? StructDispatch v) [k v]
+                                (instance? StructDispatchMap v) [k v]
                                 (instance? StructMap v) [k v]
                                 (map? v) [k (map->struct v)]
                                 (satisfies? s/Schema v) [k v]
@@ -842,9 +842,9 @@
                         overlap))))
           downstream-slice (->> options
                                 (mapcat (fn [[k v]]
-                                          (if-not (instance? StructDispatch v)
+                                          (if-not (instance? StructDispatchMap v)
                                             []
-                                            (into (.keys-slice ^StructDispatch v)
-                                                  (.downstream-slice ^StructDispatch v)))))
+                                            (into (.keys-slice ^StructDispatchMap v)
+                                                  (.downstream-slice ^StructDispatchMap v)))))
                                 (set))]
-      (StructDispatch. keys-slice downstream-slice dispatch-fn options [] [] nil))))
+      (StructDispatchMap. keys-slice downstream-slice dispatch-fn options [] [] nil))))
