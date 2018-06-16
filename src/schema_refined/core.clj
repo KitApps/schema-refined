@@ -516,7 +516,7 @@
 ;; maps
 ;;
 
-(defn AtLeast [dt]
+(defn AtLeastMap [dt]
   {:pre [(map? dt)]}
   (assoc dt s/Any s/Any))
 
