@@ -50,7 +50,7 @@ Get ready!
 (require '[schema.core :as schema])
 ```
 
-## Refined
+### Refined
 
 `schema-refined.core/refined` is a supercharged version of `schema.core/constrained`. This function takes
 two params: a **type** (which should be a valid schema) and a **predicate** (which should either satisfy
@@ -110,7 +110,7 @@ Even more motivational example.
   (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5))))
 ```
 
-## Naming Convention
+### Naming Convention
 
 The library follows a few rules on how names are made, so it's easier to make sense of types and predicates:
 
@@ -235,14 +235,118 @@ To find more examples and use cases, please see doc strings (whenever applicable
 
 * Try to catch "impossible" predicates (which defines empty sets of values), like `(And (Less 10) (Greater 100))`
 
+## Appendix A: Builtin Predicates & Types
+
+### Ordering Predicates
+
+* `Equal`
+* `Less`
+* `LessOrEqual`
+* `Greater`
+* `GreaterOrEqual`
+* `Ascending`
+* `Descending`
+* `OpenInterval`
+* `ClosedInterval`
+* `OpenClosedInterval`
+* `ClosedOpenInterval`
+* `Epsilon`
+
+### Ordering Types
+
+* `OpenIntervalOf`
+* `ClosedIntervalOf`
+* `OpenClosedIntervalOf`
+* `ClosedOpenIntervalOf`
+
+### Numerical Predicates
+
+* `Even`
+* `Odd`
+* `Modulo`
+* `Divisible`
+* `NonDivisible`
+
+### Numerical Types
+
+* `PositiveOf`
+* `NegativeOf`
+* `NonNegativeOf`
+* `NonPositiveOf`
+* `PositiveInt`
+* `NegativeInt`
+* `NonNegativeInt`
+* `NonPositiveInt`
+* `PositiveDouble`
+* `NegativeDouble`
+* `NonNegativeDouble`
+* `NonPositiveDouble`
+
+### String Predicates
+
+* `Uri`
+* `Url`
+* `StartsWith`
+* `EndsWith`
+* `Includes`
+* `LowerCased`
+* `UpperCased`
+
+### String Types
+
+* `NonEmptyStr`
+* `BoundedSizeStr`
+* `DigitChar`
+* `ASCIILetterChar`
+* `ASCIILetterOrDigitChar`
+* `BitChat`
+* `BitStr`
+* `IntStr`
+* `FloatStr`
+* `UriStr`
+* `UrlStr`
+* `StartsWithStr`
+* `EndsWithStr`
+* `IncludesStr`
+* `LowerCasedStr`
+* `UpperCasedStr`
+
+### Collection Predicates
+
+* `Empty`
+* `NonEmpty`
+* `BoundedSize`
+* `UniqueItems`
+* `Forall`
+* `Exists`
+* `First`
+* `Second`
+* `Index`
+* `Rest`
+* `Last`
+* `Butlast`
+
+### Collection Types
+
+* `EmptyList`
+* `EmptySet`
+* `EmptyMap`
+* `NonEmptyListOf`
+* `NonEmptyMapOf`
+* `NonEmptySetOf`
+* `BoundedListOf`
+* `BoundedSetOf`
+* `BoundedMapOf`
+* `SingleValueListOf`
+* `SingleValueSetOf`
+* `SingleValueMapOf`
+* `UniqueItemsListOf`
+* `NonEmptyUniqueItemsListOf`
+
 ## TODO
 
-- [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`, rename Dispatch to make
-      sure that's clear enoght that we do expect structs (or maps) as options
-- [ ] Define comprehensive set of predicates for numeric types, strings and collections, rethinkg the basic
-      idea behind `refined`, `types` and `predicates`, e.g. when dealing with `Less` or `Greater`
+- [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`
 - [ ] Publish slides from the talk on refinement types and share link here
-- [ ] Fill in "Usage" section in the README
 - [ ] Start CHANGLELOG
 - [ ] Setup CI with public results
 - [ ] Render and release documentation
