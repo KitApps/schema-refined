@@ -340,31 +340,25 @@
 ;;
 
 (defn StartsWith [prefix]
-  (s/constrained
-   s/Str
-   #(cstr/starts-with? % prefix)))
+  (FunctionPredicate. #(cstr/starts-with? % prefix)))
 
 (defn EndsWith [suffix]
-  (s/constrained
-   s/Str
-   #(cstr/ends-with? % suffix)))
+  (FunctionPredicate. #(cstr/ends-with? % suffix)))
 
 (defn Includes [substr]
-  (s/constrained
-   s/Str
-   #(cstr/includes? % substr)))
+  (FunctionPredicate. #(cstr/includes? % substr)))
 
 (def LowerCased
-  (s/constrained
-   s/Str
-   #(= %1 (cstr/lower-case %1))
-   'should-be-lower-cased))
+  (FunctionPredicate. #(= %1 (cstr/lower-case %1))))
+
+(def LowerCasedStr
+  (refined s/Str LowerCased))
 
 (def UpperCased
-  (s/constrained
-   s/Str
-   #(= %1 (cstr/upper-case %1))
-   'should-be-upper-cased))
+  (FunctionPredicate. #(= %1 (cstr/upper-case %1))))
+
+(def UpperCasedStr
+  (refined s/Str UpperCased))
 
 ;;
 ;; collection predicates
