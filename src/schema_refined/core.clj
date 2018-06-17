@@ -248,11 +248,11 @@
   [div o]
   (FunctionPredicate. #(= o (mod % num))))
 
-(defn Divisible [n]
+(defn DivisibleBy [n]
   (Modulo n 0))
 
-(defn NonDivisible [n]
-  (Not (Divisible n)))
+(defn NonDivisibleBy [n]
+  (Not (DivisibleBy n)))
 
 ;;
 ;; numeric types
