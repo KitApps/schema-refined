@@ -31,10 +31,19 @@
   (predicate-apply [_ value]
     (pred value)))
 
+(defmethod print-method FunctionPredicate
+  [^FunctionPredicate rs ^java.io.Writer writer]
+  (let [fn-name (schema-utils/fn-name (:pred rs))]
+    (.write writer (format "(%s v)" fn-name))))
+
 (defrecord SchemaPredicate [schema]
   Predicate
   (predicate-apply [_ value]
     (nil? (s/check schema value))))
+
+(defmethod print-method SchemaPredicate
+  [^SchemaPredicate rs ^java.io.Writer writer]
+  (.write writer (format "v: %s" (:schema rs))))
 
 (defrecord RefinedSchema [schema pred]
   s/Schema
@@ -74,6 +83,21 @@
   {:pre [(schema? dt)]}
   (RefinedSchema. dt (coerce pred)))
 
+;; Use common representation in the following format:
+;;
+;;   #Refined{v: T | (P v)}
+;;
+;; where T is a type (schema) and (P v) is the respresentation of
+;; appropriate predicate.
+(defmethod print-method RefinedSchema
+  [^RefinedSchema rs ^java.io.Writer writer]
+  (let [schema (:schema rs)]
+    (.write writer (format "#Refined{v: %s | " (if (fn? schema)
+                                                 (schema-utils/fn-name schema)
+                                                 schema))))
+  (print-method (:pred rs) writer)
+  (.write writer "}"))
+
 ;;
 ;; boolean operations
 ;;
@@ -86,6 +110,12 @@
 (defn Not [p]
   (NotPredicate. (coerce p)))
 
+(defmethod print-method NotPredicate
+  [^NotPredicate p ^java.io.Writer writer]
+  (.write writer "(not ")
+  (print-method (:pred p) writer)
+  (.write writer ")"))
+
 (defrecord AndPredicate [p1 p2]
   Predicate
   (predicate-apply [_ value]
@@ -97,6 +127,14 @@
   [p1 p2]
   (AndPredicate. (coerce p1) (coerce p2)))
 
+(defmethod print-method AndPredicate
+  [^AndPredicate p ^java.io.Writer writer]
+  (.write writer "(and ")
+  (print-method (:p1 p) writer)
+  (.write writer " ")
+  (print-method (:p2 p) writer)
+  (.write writer ")"))
+
 (defrecord OrPredicate [p1 p2]
   Predicate
   (predicate-apply [_ value]
@@ -106,6 +144,14 @@
   "Creates the predicate that ensures at least one predicate is satisfied"
   [p1 p2]
   (OrPredicate. (coerce p1) (coerce p2)))
+
+(defmethod print-method OrPredicate
+  [^OrPredicate p ^java.io.Writer writer]
+  (.write writer "(or ")
+  (print-method (:p1 p) writer)
+  (.write writer " ")
+  (print-method (:p2 p) writer)
+  (.write writer ")"))
 
 (defrecord OnPredicate [on-fn pred]
   Predicate
