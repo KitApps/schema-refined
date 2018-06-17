@@ -189,6 +189,10 @@
   {:pre [(ifn? on-fn)]}
   (OnPredicate. on-fn (coerce pred)))
 
+(defmethod print-method OnPredicate
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
+
 ;;
 ;; ordering predicates
 ;;
