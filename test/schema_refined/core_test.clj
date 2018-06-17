@@ -57,14 +57,14 @@
   (not-ok! r/UriStr "ftp://"))
 
 (t/deftest range-length-string
-  (ok! (r/BoundedLengthStr 1 10) "a")
-  (ok! (r/BoundedLengthStr 1 10) "abcdeabcde")
-  (ok! (r/BoundedLengthStr 1 10) "abcde     ")
-  (not-ok! (r/BoundedLengthStr 1 10) "")
-  (not-ok! (r/BoundedLengthStr 1 10) "abcdeabcdeabcde")
-  (not-ok! (r/BoundedLengthStr 1 10) "abcdeabcde     ")
-  (ok! (r/BoundedLengthStr 1 10 true) "abcdeabcde     ")
-  (not-ok! (r/BoundedLengthStr 1 10 true) " "))
+  (ok! (r/BoundedSizeStr 1 10) "a")
+  (ok! (r/BoundedSizeStr 1 10) "abcdeabcde")
+  (ok! (r/BoundedSizeStr 1 10) "abcde     ")
+  (not-ok! (r/BoundedSizeStr 1 10) "")
+  (not-ok! (r/BoundedSizeStr 1 10) "abcdeabcdeabcde")
+  (not-ok! (r/BoundedSizeStr 1 10) "abcdeabcde     ")
+  (ok! (r/BoundedSizeStr 1 10 true) "abcdeabcde     ")
+  (not-ok! (r/BoundedSizeStr 1 10 true) " "))
 
 (def -Ticket (r/Struct :id r/NonEmptyStr
                         :rev r/NonEmptyStr

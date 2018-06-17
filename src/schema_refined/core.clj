@@ -319,18 +319,17 @@
 ;;
 
 (def NonEmptyStr
-  (s/constrained
-   s/Str
-   #(not (cstr/blank? %))
-   'should-not-be-blank))
+  (refined s/Str (Not (FunctionPredicate. cstr/blank?))))
 
-(defn BoundedLengthStr
-  ([min max] (BoundedLengthStr min max false))
+(defn BoundedSizeStr
+  ([min max] (BoundedSizeStr min max false))
   ([min max trimmed?]
-   (s/constrained
-    s/Str
-    #(<= min (count (if trimmed? (cstr/trim %1) %1)) max)
-    'string-length-should-conform-boundaries)))
+   {:pre [(<= min max)
+          (boolean? trimmed?)]}
+   (let [count-chars (if-not trimmed?
+                       count
+                       #(count (cstr/trim %1)))]
+     (refined s/Str (On count-chars (ClosedInterval min max))))))
 
 (def DigitChar #"^[0-9]$")
 
@@ -342,25 +341,21 @@
 
 (def BitStr #"[0|1]*")
 
-(def IntStr
-  (s/constrained
-   NonEmptyStr
-   (fn [str]
-     (try
-       (Integer/parseInt str)
-       true
-       (catch NumberFormatException _ false)))
-   'should-be-parsable-int))
+(defn parsable-int? [s]
+  (try
+    (Integer/parseInt s)
+    true
+    (catch NumberFormatException _ false)))
 
-(def FloatStr
-  (s/constrained
-   NonEmptyStr
-   (fn [str]
-     (try
-       (Float/parseFloat str)
-       true
-       (catch NumberFormatException _ false)))
-   'should-be-parsable-float))
+(def IntStr (refined NonEmptyStr parsable-int?))
+
+(defn parsable-float? [s]
+  (try
+    (Float/parseFloat s)
+    true
+    (catch NumberFormatException _ false)))
+
+(def FloatStr (refined NonEmptyStr parsable-float?))
 
 (defn uri? [uri]
   (try
