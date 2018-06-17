@@ -16,35 +16,51 @@
   (satisfies? s/Schema dt))
 
 (defprotocol Predicate
-  (predicate-apply [this value])
-  ;; xxx: implement to have better error messages
-  #_(predicate-exlain [this])
-  ;; xxx: this might be a separate protocol
-  ;; in case we want to have some kind of
-  ;; default error messages (obviously we do)
-  #_(predicate-error [this value]))
+  (predicate-apply [this value]))
+
+(defprotocol PredicateShow
+  (predicate-show [this sym]))
 
 (defn predicate? [p]
   (satisfies? Predicate p))
 
+(defn predicate->str
+  ([pred] (predicate->str pred "v" false))
+  ([pred sym bounded?]
+   {:pre [(predicate? pred)]}
+   (let [pred-str (if (satisfies? PredicateShow pred)
+                    (predicate-show pred sym)
+                    (str pred)) ]
+     (cond->> pred-str
+       (and bounded-count (not (cstr/starts-with? pred-str "(")))
+       (format "(%s)")))))
+
+(defn predicate-print-method [pred ^java.io.Writer writer]
+  (.write writer (format "#Predicate{%s}" (predicate->str pred))))
+
 (defrecord FunctionPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (pred value)))
+    (pred value))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "(%s %s)" (schema-utils/fn-name pred) sym)))
 
 (defmethod print-method FunctionPredicate
-  [^FunctionPredicate rs ^java.io.Writer writer]
-  (let [fn-name (schema-utils/fn-name (:pred rs))]
-    (.write writer (format "(%s v)" fn-name))))
+  [rs ^java.io.Writer writer]
+  (predicate-print-method rs writer))
 
 (defrecord SchemaPredicate [schema]
   Predicate
   (predicate-apply [_ value]
-    (nil? (s/check schema value))))
+    (nil? (s/check schema value)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s: %s" sym schema)))
 
 (defmethod print-method SchemaPredicate
-  [^SchemaPredicate rs ^java.io.Writer writer]
-  (.write writer (format "v: %s" (:schema rs))))
+  [rs ^java.io.Writer writer]
+  (predicate-print-method rs writer))
 
 (defrecord RefinedSchema [schema pred]
   s/Schema
@@ -58,6 +74,21 @@
       (partial predicate-apply pred)
       #(list (symbol (schema-utils/fn-name pred)) %))))
   (explain [_] (list 'refined (s/explain schema) (symbol (schema-utils/fn-name pred)))))
+
+;; Use common representation in the following format:
+;;
+;;   #Refined{v: T | (P v)}
+;;
+;; where T is a type (schema) and (P v) is the respresentation of
+;; appropriate predicate.
+(defmethod print-method RefinedSchema
+  [^RefinedSchema rs ^java.io.Writer writer]
+  (let [schema (:schema rs)
+        schema-name (if (fn? schema?)
+                      (schema-utils/fn-name schema)
+                      schema?)
+        f (format "#Refined{v: %s | %s}" schema-name (predicate->str (:pred rs)))]
+    (.write writer f)))
 
 (defn coerce
   "Turn function or schema to appropriate predicates"
@@ -84,21 +115,6 @@
   {:pre [(schema? dt)]}
   (RefinedSchema. dt (coerce pred)))
 
-;; Use common representation in the following format:
-;;
-;;   #Refined{v: T | (P v)}
-;;
-;; where T is a type (schema) and (P v) is the respresentation of
-;; appropriate predicate.
-(defmethod print-method RefinedSchema
-  [^RefinedSchema rs ^java.io.Writer writer]
-  (let [schema (:schema rs)]
-    (.write writer (format "#Refined{v: %s | " (if (fn? schema)
-                                                 (schema-utils/fn-name schema)
-                                                 schema))))
-  (print-method (:pred rs) writer)
-  (.write writer "}"))
-
 ;;
 ;; boolean operations
 ;;
@@ -106,21 +122,27 @@
 (defrecord NotPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (not (predicate-apply pred value))))
+    (not (predicate-apply pred value)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "(not %s)" (predicate->str pred sym true))))
 
 (defn Not [p]
   (NotPredicate. (coerce p)))
 
 (defmethod print-method NotPredicate
-  [^NotPredicate p ^java.io.Writer writer]
-  (.write writer "(not ")
-  (print-method (:pred p) writer)
-  (.write writer ")"))
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
 
 (defrecord AndPredicate [p1 p2]
   Predicate
   (predicate-apply [_ value]
-    (and (predicate-apply p1 value) (predicate-apply p2 value))))
+    (and (predicate-apply p1 value) (predicate-apply p2 value)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "(and %s %s)"
+            (predicate->str p1 sym true)
+            (predicate->str p2 sym true))))
 
 ;; xxx: we can support > 2 arguments here
 (defn And
@@ -129,17 +151,18 @@
   (AndPredicate. (coerce p1) (coerce p2)))
 
 (defmethod print-method AndPredicate
-  [^AndPredicate p ^java.io.Writer writer]
-  (.write writer "(and ")
-  (print-method (:p1 p) writer)
-  (.write writer " ")
-  (print-method (:p2 p) writer)
-  (.write writer ")"))
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
 
 (defrecord OrPredicate [p1 p2]
   Predicate
   (predicate-apply [_ value]
-    (or (predicate-apply p1 value) (predicate-apply p2 value))))
+    (or (predicate-apply p1 value) (predicate-apply p2 value)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "(or %s %s)"
+            (predicate->str p1 sym true)
+            (predicate->str p2 sym true))))
 
 (defn Or
   "Creates the predicate that ensures at least one predicate is satisfied"
@@ -147,17 +170,17 @@
   (OrPredicate. (coerce p1) (coerce p2)))
 
 (defmethod print-method OrPredicate
-  [^OrPredicate p ^java.io.Writer writer]
-  (.write writer "(or ")
-  (print-method (:p1 p) writer)
-  (.write writer " ")
-  (print-method (:p2 p) writer)
-  (.write writer ")"))
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
 
 (defrecord OnPredicate [on-fn pred]
   Predicate
   (predicate-apply [_ value]
-    (predicate-apply pred (on-fn value))))
+    (predicate-apply pred (on-fn value)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (let [sym' (format "(%s %s)" (schema-utils/fn-name on-fn) sym)]
+      (predicate->str pred sym' false))))
 
 (defn On
   "Creates the predicate to ensure that the result of applying function
