@@ -51,10 +51,10 @@
   (not-ok! r/NonEmptyStr "")) 
 
 (t/deftest validate-urls
-  (ok! r/Uri "https://attendify.com")
-  (ok! r/Uri "ftp://attendify.com/long-file-name.txt")
-  (not-ok! r/Uri "attendify com")
-  (not-ok! r/Uri "ftp://"))
+  (ok! r/UriStr "https://attendify.com")
+  (ok! r/UriStr "ftp://attendify.com/long-file-name.txt")
+  (not-ok! r/UriStr "attendify com")
+  (not-ok! r/UriStr "ftp://"))
 
 (t/deftest range-length-string
   (ok! (r/BoundedLengthStr 1 10) "a")

@@ -1,4 +1,5 @@
 (ns schema-refined.core
+  (:refer-clojure :exclude [uri?])
   (:require [schema.core :as s]
             [schema.spec.core :as schema-spec]
             [schema.spec.variant :as schema-variant]
@@ -361,25 +362,25 @@
        (catch NumberFormatException _ false)))
    'should-be-parsable-float))
 
-(def Uri
-  (s/constrained
-   NonEmptyStr
-   (fn [uri]
-     (try
-       (URI. uri)
-       true
-       (catch URISyntaxException _ false)))
-   'should-be-parsable-uri))
+(defn uri? [uri]
+  (try
+    (URI. uri)
+    true
+    (catch URISyntaxException _ false)))
 
-(def Url
-  (s/constrained
-   NonEmptyStr
-   (fn [url]
-     (try
-       (URL. url)
-       true
-       (catch MalformedURLException _ false)))
-   'should-be-parsable-url))
+(def Uri (FunctionPredicate. uri?))
+
+(def UriStr (refined NonEmptyStr Uri))
+
+(defn url? [url]
+  (try
+    (URL. url)
+    true
+    (catch MalformedURLException _ false)))
+
+(def Url (FunctionPredicate. url?))
+
+(def UrlStr (refined NonEmptyStr Url))
 
 ;;
 ;; string predicates
@@ -388,11 +389,20 @@
 (defn StartsWith [prefix]
   (FunctionPredicate. #(cstr/starts-with? % prefix)))
 
+(defn StartsWithStr [prefix]
+  (refined s/Str (StartsWith prefix)))
+
 (defn EndsWith [suffix]
   (FunctionPredicate. #(cstr/ends-with? % suffix)))
 
+(defn EndsWithStr [suffix]
+  (refined s/Str (EndsWith suffix)))
+
 (defn Includes [substr]
   (FunctionPredicate. #(cstr/includes? % substr)))
+
+(defn IncludesStr [substr]
+  (refined s/Str (Includes substr)))
 
 (def LowerCased
   (FunctionPredicate. #(= %1 (cstr/lower-case %1))))
@@ -444,22 +454,12 @@
 (defn Exists [p]
   (ExistsPredicate. (coerce p)))
 
-(defrecord FirstPredicate [pred]
-  Predicate
-  (predicate-apply [_ value]
-    (predicate-apply pred (first value))))
-
 ;; head in clojure
 (defn First [p]
-  (FirstPredicate. (coerce p)))
-
-(defrecord SecondPredicate [pred]
-  Predicate
-  (predicate-apply [_ value]
-    (predicate-apply pred (second value))))
+  (On first (coerce p)))
 
 (defn Second [p]
-  (SecondPredicate. (coerce p)))
+  (On second (coerce p)))
 
 (defrecord IndexPredicate [n pred]
   Predicate
@@ -470,30 +470,15 @@
   {:pre [(int? n)]}
   (IndexPredicate. n (coerce p)))
 
-(defrecord RestPredicate [pred]
-  Predicate
-  (predicate-apply [_ value]
-    (every? (partial predicate-apply pred) (rest value))))
-
 ;; tail in clojure
 (defn Rest [p]
-  (RestPredicate. (coerce p)))
-
-(defrecord LastPredicate [pred]
-  Predicate
-  (predicate-apply [_ value]
-    (predicate-apply pred (last value))))
+  (On rest (Forall p)))
 
 (defn Last [p]
-  (LastPredicate. (coerce p)))
-
-(defrecord ButlastPredicate [pred]
-  Predicate
-  (predicate-apply [_ value]
-    (every? (partial predicate-apply pred) (butlast value))))
+  (On last (coerce p)))
 
 (defn Butlast [p]
-  (ButlastPredicate. (coerce p)))
+  (On butlast (Forall p)))
 
 ;;
 ;; collection types
