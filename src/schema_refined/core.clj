@@ -501,20 +501,23 @@
 (defn BoundedListOf
   ([dt size] (BoundedListOf dt size size))
   ([dt left right]
-   {:pre [(schema? dt)]}
+   {:pre [(schema? dt)
+          (<= 0 left right)]}
    (refined [dt] (BoundedSize left right))))
 
 (defn BoundedSetOf
   ([dt size] (BoundedSetOf dt size size))
   ([dt left right]
-   {:pre [(schema? dt)]}
+   {:pre [(schema? dt)
+          (<= 0 left right)]}
    (refined #{dt} (BoundedSize left right))))
 
 (defn BoundedMapOf
   ([key-dt value-dt size] (BoundedMapOf key-dt value-dt size size))
   ([key-dt value-dt left right]
    {:pre [(schema? key-dt)
-          (schema? value-dt)]}
+          (schema? value-dt)
+          (<= 0 left right)]}
    (refined {key-dt value-dt} (BoundedSize left right))))
 
 (defn SingleValueListOf [dt]
