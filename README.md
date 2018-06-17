@@ -207,7 +207,7 @@ and reduce:
 but the resulting **type** behaves list a one created with `schema-refined.core/Struct`.
 
 ```clojure
-(def Ticket (Dispatch :type
+(def Ticket (StructDispatch :type
               "free" FreeTicket
               "paid" PaidTicket))
 

@@ -538,7 +538,7 @@
    and appropriate schemas. Throws if the result of determinant
    function does not confirm any listed value (the same as conditional
    does when no match found). In case subtypes are maps, please consider
-   using Struct and Dispatch, that would give you flexibility to deal
+   using Struct and StructDispatch, that would give you flexibility to deal
    with constrains (guards).
 
    Last pair treats :else value the same way conditional does.
