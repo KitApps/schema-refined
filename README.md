@@ -237,6 +237,13 @@ To find more examples and use cases, please see doc strings (whenever applicable
 
 ## Appendix A: Builtin Predicates & Types
 
+### Predicate Combinators
+
+* `Not`
+* `And`
+* `Or`
+* `On`
+
 ### Ordering Predicates
 
 * `Equal`
@@ -264,8 +271,8 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `Even`
 * `Odd`
 * `Modulo`
-* `Divisible`
-* `NonDivisible`
+* `DivisibleBy`
+* `NonDivisibleBy`
 
 ### Numerical Types
 
