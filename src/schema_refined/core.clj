@@ -197,36 +197,90 @@
 ;; ordering predicates
 ;;
 
-(defrecord EqualPredicate [n])
+(defrecord EqualPredicate [n]
+  Predicate
+  (predicate-apply [_ value]
+    (= value n))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s = %s" sym n)))
+
+(defmethod print-method EqualPredicate
+  [p writer]
+  (predicate-print-method p writer))
 
 (defn Equal
   "A value that must be = n"
   [n]
-  (FunctionPredicate. #(= % n)))
+  (EqualPredicate. n))
 
-(defrecord LessPredicate [n])
+(defrecord LessPredicate [n]
+  Predicate
+  (predicate-apply [_ value]
+    (< value n))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s < %s" sym n)))
+
+(defmethod print-method LessPredicate
+  [p writer]
+  (predicate-print-method p writer))
 
 (defn Less
   "A value that must be < n"
   [n]
-  (FunctionPredicate. #(< % n)))
+  (LessPredicate. n))
+
+(defrecord LessOrEqualPredicate [n]
+  Predicate
+  (predicate-apply [_ value]
+    (<= value n))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s ≤ %s" sym n)))
+
+(defmethod print-method LessOrEqualPredicate
+  [p writer]
+  (predicate-print-method p writer))
 
 (defn LessOrEqual
   "A value that must be < n"
   [n]
-  (Or (Less n) (Equal n)))
+  (LessOrEqualPredicate. n))
 
-(defrecord GreaterPredicate [n])
+(defrecord GreaterPredicate [n]
+  Predicate
+  (predicate-apply [_ value]
+    (< n value))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s < %s" n sym)))
+
+(defmethod print-method GreaterPredicate
+  [p writer]
+  (predicate-print-method p writer))
 
 (defn Greater
   "A value that must be > n"
   [n]
-  (FunctionPredicate. #(> % n)))
+  (GreaterPredicate. n))
+
+(defrecord GreaterOrEqualPredicate [n]
+  Predicate
+  (predicate-apply [_ value]
+    (<= n value))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s ≤ %s" n sym)))
+
+(defmethod print-method GreaterOrEqualPredicate
+  [p writer]
+  (predicate-print-method p writer))
 
 (defn GreaterOrEqual
   "A value that must be >= n"
   [n]
-  (Or (Greater n) (Equal n)))
+  (GreaterOrEqualPredicate. n))
 
 (def Ascending
   (reify Predicate))
@@ -234,7 +288,6 @@
 (def Descending
   (reify Predicate))
 
-;; xxx: reimplement intervals with records
 (defn OpenInterval
   "a < value < b"
   [a b]
