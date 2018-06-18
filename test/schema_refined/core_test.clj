@@ -211,7 +211,46 @@
     (t/deftest refined-with-upper-cased-predicate
       (ok! (r/refined s/Str r/UpperCased) "ACE")
 
-      (not-ok! (r/refined s/Str r/UpperCased) "https://attendify.com"))))
+      (not-ok! (r/refined s/Str r/UpperCased) "https://attendify.com"))
+
+    (t/deftest refined-with-empty-predicate
+      (ok! (r/refined [s/Num] r/Empty) [])
+      (ok! (r/refined [s/Num] r/Empty) '())
+      (ok! (r/refined s/Str r/Empty) "")
+      (ok! (r/refined {s/Keyword s/Str} r/Empty) {})
+
+      (not-ok! (r/refined s/Str r/Empty) "doom")
+      (not-ok! (r/refined [s/Num] r/Empty) [1 2 3])
+      (not-ok! (r/refined {s/Keyword s/Str} r/Empty) {:boom "Doom"})
+      (not-ok! (r/refined [s/Str] r/Empty) ["a" "b" "c"])
+      (not-ok! (r/refined [s/Any] r/Empty) [["a"] ["b" "c"] ["c" "d"]])
+      (not-ok! (r/refined s/Str r/Empty) nil)
+      (not-ok! (r/refined s/Str r/Empty) '()))
+
+    (t/deftest refined-with-not-empty-predicate
+      (ok! (r/refined s/Str r/NonEmpty) "doom")
+      (ok! (r/refined [s/Num] r/NonEmpty) [1 2 3])
+      (ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {:boom "Doom"})
+      (ok! (r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty) ["a" "b" "c"])
+      (ok! (r/refined [(r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty)] r/NonEmpty)
+           [["a"] ["b" "c"] ["c" "d"]])
+
+      (not-ok! (r/refined [s/Num] r/NonEmpty) [])
+      (not-ok! (r/refined [s/Num] r/NonEmpty) '())
+      (not-ok! (r/refined s/Str r/NonEmpty) nil)
+      (not-ok! (r/refined s/Str r/NonEmpty) '())
+      (not-ok! (r/refined s/Str r/NonEmpty) "")
+      (not-ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {}))))
+
+(t/deftest validate-empty-values
+  (ok! r/EmptyList [])
+  (ok! r/EmptyList '())
+  (ok! r/EmptyMap {})
+
+  (not-ok! r/EmptyList [1 2 3])
+  (not-ok! r/EmptyMap {:boom "Doom"})
+  (not-ok! r/EmptyList ["a" "b" "c"])
+  (not-ok! r/EmptyList [["a"] ["b" "c"] ["c" "d"]]))
 
 (t/deftest validate-non-empty-values
   (ok! r/NonEmptyStr "doom")
@@ -223,7 +262,8 @@
   (not-ok! (r/NonEmptyListOf s/Num) '())
   (not-ok! r/NonEmptyStr nil)
   (not-ok! r/NonEmptyStr '())
-  (not-ok! r/NonEmptyStr ""))
+  (not-ok! r/NonEmptyStr "")
+  (not-ok! (r/NonEmptyMapOf s/Keyword s/Str) {}))
 
 (t/deftest validate-urls
   (ok! r/UriStr "https://attendify.com")
