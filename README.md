@@ -370,15 +370,6 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `UniqueItemsListOf`
 * `NonEmptyUniqueItemsListOf`
 
-## TODO
-
-- [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`
-- [ ] Start CHANGLELOG
-- [ ] Setup CI with public results
-- [ ] Render and release documentation
-- [ ] Release on Clojars
-- [ ] Reimplement all schemas to get better error messages
-
 ## Contribute
 
 * Check for open issues or open a fresh issue to start a discussion around a feature idea or a bug.
