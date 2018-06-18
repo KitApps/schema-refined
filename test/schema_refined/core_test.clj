@@ -213,6 +213,110 @@
   (ok! (r/BoundedSizeStr 1 10 true) "abcdeabcde     ")
   (not-ok! (r/BoundedSizeStr 1 10 true) " "))
 
+(t/deftest validate-positive-numeric
+  (ok! (r/PositiveOf s/Int) 42)
+  (ok! r/PositiveInt 42)
+  (ok! (r/PositiveOf double) 3.14)
+  (ok! r/PositiveDouble 3.14)
+
+  (not-ok! (r/PositiveOf s/Int) 0)
+  (not-ok! r/PositiveInt 0)
+  (not-ok! (r/PositiveOf s/Int) -7)
+  (not-ok! r/PositiveInt -7)
+  (not-ok! (r/PositiveOf double) -3.14)
+  (not-ok! r/PositiveDouble -3.14))
+
+(t/deftest validate-negative-numeric
+  (ok! (r/NegativeOf s/Int) -42)
+  (ok! r/NegativeInt -42)
+  (ok! (r/NegativeOf double) -3.14)
+  (ok! r/NegativeDouble -3.14)
+
+  (not-ok! (r/NegativeOf s/Int) 0)
+  (not-ok! r/NegativeInt 0)
+  (not-ok! (r/NegativeOf s/Int) 7)
+  (not-ok! r/NegativeInt 7)
+  (not-ok! (r/NegativeOf double) 3.14)
+  (not-ok! r/NegativeDouble 3.14))
+
+(t/deftest validate-non-negative-numeric
+  (ok! (r/NonNegativeOf s/Int) 42)
+  (ok! r/NonNegativeInt 42)
+  (ok! (r/NonNegativeOf double) 3.14)
+  (ok! r/NonNegativeDouble 3.14)
+  (ok! (r/NonNegativeOf s/Int) 0)
+  (ok! r/NonNegativeInt 0)
+
+  (not-ok! (r/NonNegativeOf s/Int) -7)
+  (not-ok! r/NonNegativeInt -7)
+  (not-ok! (r/NonNegativeOf double) -3.14)
+  (not-ok! r/NonNegativeDouble -3.14))
+
+(t/deftest validate-non-positive-numeric
+  (ok! (r/NonPositiveOf s/Int) -42)
+  (ok! r/NonPositiveInt -42)
+  (ok! (r/NonPositiveOf double) -3.14)
+  (ok! r/NonPositiveDouble -3.14)
+  (ok! (r/NonPositiveOf s/Int) 0)
+  (ok! r/NonPositiveInt 0)
+
+  (not-ok! (r/NonPositiveOf s/Int) 7)
+  (not-ok! r/NonPositiveInt 7)
+  (not-ok! (r/NonPositiveOf double) 3.14)
+  (not-ok! r/NonPositiveDouble 3.14))
+
+(t/deftest validate-numeric-open-interval
+  (ok! (r/OpenIntervalOf s/Int 0 43) 42)
+  (ok! (r/OpenIntervalOf double 0.0 1.0) 0.7)
+
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) 0)
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) 43)
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 0.0)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 1.0)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) -3.14))
+
+(t/deftest validate-numeric-closed-interval
+  (ok! (r/ClosedIntervalOf s/Int 0 43) 42)
+  (ok! (r/ClosedIntervalOf s/Int 0 43) 0)
+  (ok! (r/ClosedIntervalOf s/Int 0 43) 43)
+  (ok! (r/ClosedIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/ClosedIntervalOf double 0.0 1.0) 0.0)
+  (ok! (r/ClosedIntervalOf double 0.0 1.0) 1.0)
+
+  (not-ok! (r/ClosedIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/ClosedIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/ClosedIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/ClosedIntervalOf double 0.0 1.0) -3.14))
+
+(t/deftest validate-numeric-open-closed-interval
+  (ok! (r/OpenClosedIntervalOf s/Int 0 43) 42)
+  (ok! (r/OpenClosedIntervalOf s/Int 0 43) 43)
+  (ok! (r/OpenClosedIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/OpenClosedIntervalOf double 0.0 1.0) 1.0)
+
+  (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) 0)
+  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) -3.14)
+  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) 0.0))
+
+(t/deftest validate-numeric-closed-open-interval
+  (ok! (r/ClosedOpenIntervalOf s/Int 0 43) 42)
+  (ok! (r/ClosedOpenIntervalOf s/Int 0 43) 0)
+  (ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 0.0)
+
+  (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) 43)
+  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) -3.14)
+  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 1.0))
+
 (def -Ticket (r/Struct :id r/NonEmptyStr
                         :rev r/NonEmptyStr
                         :price (s/maybe s/Num)
