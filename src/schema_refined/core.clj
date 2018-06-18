@@ -281,12 +281,6 @@
   [n]
   (GreaterOrEqualPredicate. n))
 
-(def Ascending
-  (reify Predicate))
-
-(def Descending
-  (reify Predicate))
-
 (defrecord OpenIntervalPredicate [a b]
   Predicate
   (predicate-apply [_ value]
@@ -643,6 +637,51 @@
 
 (defn Butlast [p]
   (On butlast (Forall p)))
+
+(defrecord PairwisePredicate [pred]
+  Predicate
+  (predicate-apply [_ value]
+    (->> (map vector value (rest value))
+         (every? (partial predicate-apply pred))))
+  PredicateShow
+  (predicate-show [_ sym]
+    (let [sym' (format "[%s[i], %s[i+1]]" sym sym)]
+      (format "∀i ∊ [0, (count %s)): %s" sym (predicate->str pred sym' false)))))
+
+(defmethod print-method PairwisePredicate
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
+
+(defn Pairwise [p]
+  (PairwisePredicate. (coerce p)))
+
+;;
+;; more ordering predicates
+;;
+
+(defn AscendingOn [f]
+  {:pre [(ifn? f)]}
+  (Pairwise (fn [[a b]]
+              (<= (compare (f a) (f b)) 0))))
+
+(defn DescendingOn [f]
+  {:pre [(ifn? f)]}
+  (Pairwise (fn [[a b]]
+              (<= 0 (compare (f a) (f b))))))
+
+(defn AscendingBy [f]
+  {:pre [(ifn? f)]}
+  (Pairwise #(<= (f (first %1) (second %1)) 0)))
+
+(defn DescendingBy [f]
+  {:pre [(ifn? f)]}
+  (Pairwise #(<= 0 (f (first %1) (second %1)))))
+
+(def Ascending
+  (AscendingBy compare))
+
+(def Descending
+  (DescendingBy compare))
 
 ;;
 ;; collection types

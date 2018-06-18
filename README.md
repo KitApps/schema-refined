@@ -254,7 +254,11 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `Greater`
 * `GreaterOrEqual`
 * `Ascending`
+* `AscendingBy`
+* `AscendingOn`
 * `Descending`
+* `DescendingBy`
+* `DescendingOn`
 * `OpenInterval`
 * `ClosedInterval`
 * `OpenClosedInterval`
@@ -335,6 +339,7 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `Rest`
 * `Last`
 * `Butlast`
+* `Pairwise`
 
 ### Collection Types
 
