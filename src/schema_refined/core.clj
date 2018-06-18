@@ -543,8 +543,8 @@
   (FunctionPredicate. #(not (empty? %))))
 
 (defn BoundedSize [left right]
-  {:pre [(int? left)
-         (int? right)
+  {:pre [(integer? left)
+         (integer? right)
          (pos? left)
          (pos? right)]}
   (On count (ClosedInterval left right)))
@@ -582,7 +582,7 @@
     (predicate-apply pred (nth value n))))
 
 (defn Index [n p]
-  {:pre [(int? n)]}
+  {:pre [(integer? n)]}
   (IndexPredicate. n (coerce p)))
 
 ;; tail in clojure
