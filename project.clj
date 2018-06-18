@@ -10,4 +10,6 @@
   :profiles {:dev {:dependencies [[org.clojure/clojure "1.7.0"]]}
              :1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
              :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
-             :1.10 {:dependencies [[org.clojure/clojure "1.10.0-alpha4"]]}})
+             :1.10 {:dependencies [[org.clojure/clojure "1.10.0-alpha4"]]}}
+
+  :deploy-repositories {"clojars" {:sign-releases false}})

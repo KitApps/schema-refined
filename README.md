@@ -16,8 +16,16 @@ Type refinement is all about making the types (schemas) more precise to keep you
 
 And more!
 
+Add to your project with Leiningen/Boot:
+
 ```clojure
 [com.attendify/schema-refined "0.3.0-alpha4"]
+```
+
+or with deps.edn
+
+```clojure
+com.attendify/schema-refined {:mvn/version "0.3.0-alpha4"}
 ```
 
 ## Our Goals
