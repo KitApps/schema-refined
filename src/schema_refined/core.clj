@@ -534,12 +534,23 @@
 ;; collection predicates
 ;;
 
-;; xxx: reimplement Empty/NonEmpty with reify
 (def Empty
-  (FunctionPredicate. empty?))
+  (reify
+    Predicate
+    (predicate-apply [_ value]
+      (empty? value))
+    PredicateShow
+    (predicate-show [_ sym]
+      (format "%s = ∅" sym))))
 
 (def NonEmpty
-  (FunctionPredicate. #(not (empty? %))))
+  (reify
+    Predicate
+    (predicate-apply [_ value]
+      (not (empty? value)))
+    PredicateShow
+    (predicate-show [_ sym]
+      (format "%s ≠ ∅" sym))))
 
 (defn BoundedSize [left right]
   {:pre [(integer? left)
@@ -550,7 +561,7 @@
 
 ;; xxx: use reify
 (def UniqueItems
-  (FunctionPredicate. #(= (count %1) (set (count %1)))))
+  (FunctionPredicate. #(= (count %1) (count (set %1)))))
 
 (defrecord ForallPredicate [pred]
   Predicate
