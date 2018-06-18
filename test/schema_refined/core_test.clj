@@ -36,7 +36,23 @@
             FromZurichToRome (r/And (r/First InZurich) (r/Last InRome))
             RouteFromZurichToRomeWithLess3Hops (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5)))]
         (ok! RouteFromZurichToRome input)
-        (ok! RouteFromZurichToRomeWithLess3Hops input)))))
+        (ok! RouteFromZurichToRomeWithLess3Hops input)))
+
+    (t/deftest refined-with-boolean-predicates
+      (ok! (r/refined s/Int (r/Not r/NegativeInt)) 42)
+      (ok! (r/refined s/Int (r/And r/PositiveInt (r/Less 108))) 42)
+      (ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -42)
+
+      (not-ok! (r/refined s/Int (r/Not r/NegativeInt)) -42)
+      (not-ok! (r/refined s/Int (r/And r/PositiveInt  (r/Less 108))) 142)
+      (not-ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -3))
+
+    (t/deftest refined-with-on-predicate
+      (ok! (r/refined GeoPoint (r/On :lng r/NegativeDouble))
+           {:lat 51.5085 :lng -0.0762})
+
+      (not-ok! (r/refined GeoPoint (r/On :lat r/NegativeDouble))
+               {:lat 47.3529 :lng 8.5199}))))
 
 (t/deftest validate-non-empty-values
   (ok! r/NonEmptyStr "doom")
@@ -48,7 +64,7 @@
   (not-ok! (r/NonEmptyListOf s/Num) '())
   (not-ok! r/NonEmptyStr nil)
   (not-ok! r/NonEmptyStr '())
-  (not-ok! r/NonEmptyStr "")) 
+  (not-ok! r/NonEmptyStr ""))
 
 (t/deftest validate-urls
   (ok! r/UriStr "https://attendify.com")
