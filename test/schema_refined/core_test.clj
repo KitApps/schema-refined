@@ -201,7 +201,11 @@
   (ok! r/UriStr "https://attendify.com")
   (ok! r/UriStr "ftp://attendify.com/long-file-name.txt")
   (not-ok! r/UriStr "attendify com")
-  (not-ok! r/UriStr "ftp://"))
+
+  (ok! r/UrlStr "https://attendify.com")
+  (ok! r/UrlStr "ftp://attendify.com/long-file-name.txt")
+  (ok! r/UrlStr "ftp://")
+  (not-ok! r/UrlStr "attendify com"))
 
 (t/deftest range-length-string
   (ok! (r/BoundedSizeStr 1 10) "a")
@@ -212,6 +216,80 @@
   (not-ok! (r/BoundedSizeStr 1 10) "abcdeabcde     ")
   (ok! (r/BoundedSizeStr 1 10 true) "abcdeabcde     ")
   (not-ok! (r/BoundedSizeStr 1 10 true) " "))
+
+(t/deftest validate-digit-char
+  (doseq [i (range 10)]
+    (ok! r/DigitChar (str i)))
+
+  (not-ok! r/DigitChar "attendify.com")
+  (not-ok! r/DigitChar "")
+  (not-ok! r/DigitChar ".")
+  (not-ok! r/DigitChar "j"))
+
+(t/deftest validate-ascii-letter-char
+  (doseq [i (map char (range (int \a) (inc (int \z))))]
+    (ok! r/ASCIILetterChar (str i)))
+
+  (not-ok! r/ASCIILetterChar "attendify.com")
+  (not-ok! r/ASCIILetterChar "")
+  (not-ok! r/ASCIILetterChar ".")
+  (not-ok! r/ASCIILetterChar "7"))
+
+(t/deftest validate-ascii-letter-or-digit-char
+  (doseq [i (map char (range (int \a) (inc (int \z))))]
+    (ok! r/ASCIILetterOrDigitChar (str i)))
+  (doseq [i (range 10)]
+    (ok! r/DigitChar (str i)))
+
+  (not-ok! r/ASCIILetterOrDigitChar "attendify.com")
+  (not-ok! r/ASCIILetterOrDigitChar "")
+  (not-ok! r/ASCIILetterOrDigitChar "."))
+
+(t/deftest validate-bit-char
+  (ok! r/BitChar "0")
+  (ok! r/BitChar "1")
+
+  (not-ok! r/BitChar "attendify.com")
+  (not-ok! r/BitChar "")
+  (not-ok! r/BitChar ".")
+  (not-ok! r/BitChar "j")
+  (not-ok! r/BitChar "7"))
+
+(t/deftest validate-bit-str
+  (ok! r/BitStr "0")
+  (ok! r/BitStr "1")
+  (ok! r/BitStr "0001")
+  (ok! r/BitStr "101010")
+
+  (not-ok! r/BitStr "attendify.com")
+  (not-ok! r/BitStr "   ")
+  (not-ok! r/BitStr "000000200")
+  (not-ok! r/BitStr "j")
+  (not-ok! r/BitStr "1111 "))
+
+(t/deftest validate-int-str
+  (ok! r/IntStr "0")
+  (ok! r/IntStr "3")
+  (ok! r/IntStr "-401")
+  (ok! r/IntStr "101410")
+  (ok! r/IntStr "000000200")
+
+  (not-ok! r/IntStr "attendify.com")
+  (not-ok! r/IntStr "   ")
+  (not-ok! r/IntStr "j")
+  (not-ok! r/IntStr "1111 "))
+
+(t/deftest validate-float-str
+  (ok! r/FloatStr "0")
+  (ok! r/FloatStr "3.14")
+  (ok! r/FloatStr "-123.203201")
+  (ok! r/FloatStr "101410")
+  (ok! r/FloatStr "1111 ")
+
+  (not-ok! r/FloatStr "attendify.com")
+  (not-ok! r/FloatStr "   ")
+  (not-ok! r/FloatStr "j")
+  (not-ok! r/FloatStr "3_14"))
 
 (t/deftest validate-positive-numeric
   (ok! (r/PositiveOf s/Int) 42)
