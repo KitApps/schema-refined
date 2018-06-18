@@ -5,7 +5,7 @@
             [schema.utils :as schema-utils]
             [clojure.string :as cstr]
             [potemkin.collections :refer [def-map-type]])
-  (:refer-clojure :exlude [boolean?])
+  (:refer-clojure :exclude [boolean?])
   (:import (java.net URI URISyntaxException URL MalformedURLException)))
 
 ;;
