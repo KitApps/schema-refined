@@ -5,11 +5,32 @@
             [schema.utils :as schema-utils]
             [clojure.string :as cstr]
             [potemkin.collections :refer [def-map-type]])
+  (:refer-clojure :exlude [boolean?])
   (:import (java.net URI URISyntaxException URL MalformedURLException)))
 
 ;;
 ;; helpers & basic definitions
 ;;
+
+(defn boolean?
+  "Backported boolean? from Clojure 1.9"
+  [x]
+  (instance? Boolean x))
+
+(defn starts-with?
+  "True if s starts with substr. Backported from Clojure 1.8"
+  [^CharSequence s ^String substr]
+  (.startsWith (.toString s) substr))
+
+(defn ends-with?
+  "True if s ends with substr. Backported from Clojure 1.8"
+  [^CharSequence s ^String substr]
+  (.endsWith (.toString s) substr))
+
+(defn includes?
+  "True if s includes substr. Backported from Clojure 1.8"
+  [^CharSequence s ^CharSequence substr]
+  (.contains (.toString s) substr))
 
 (defn schema? [dt]
   (satisfies? s/Schema dt))
@@ -31,7 +52,7 @@
                     (predicate-show pred sym)
                     (str pred))]
      (cond->> pred-str
-       (and bounded? (not (cstr/starts-with? pred-str "(")))
+       (and bounded? (not (starts-with? pred-str "(")))
        (format "(%s)")))))
 
 (defn predicate-print-method [pred ^java.io.Writer writer]
@@ -495,19 +516,19 @@
 ;;
 
 (defn StartsWith [prefix]
-  (FunctionPredicate. #(cstr/starts-with? % prefix)))
+  (FunctionPredicate. #(starts-with? % prefix)))
 
 (defn StartsWithStr [prefix]
   (refined s/Str (StartsWith prefix)))
 
 (defn EndsWith [suffix]
-  (FunctionPredicate. #(cstr/ends-with? % suffix)))
+  (FunctionPredicate. #(ends-with? % suffix)))
 
 (defn EndsWithStr [suffix]
   (refined s/Str (EndsWith suffix)))
 
 (defn Includes [substr]
-  (FunctionPredicate. #(cstr/includes? % substr)))
+  (FunctionPredicate. #(includes? % substr)))
 
 (defn IncludesStr [substr]
   (refined s/Str (Includes substr)))
