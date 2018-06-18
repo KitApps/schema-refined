@@ -1,20 +1,18 @@
 ## schema-refined
 
-Powerful "refined" steroids for `schema` library.
+Powerful "refined" steroids for [schema](https://github.com/plumatic/schema) library.
 
-Type refinement is all about making the types (schemas) more precise to keep you away from errors and bugs.
-All heavy lifting of checking/validation the shape of the data is done by [schema](https://github.com/plumatic/schema) library.
-Here we introduce a few new concepts to make schemas flexible and more expressive:
+Type refinement is all about making the types (schemas) more precise to keep you away from errors and bugs. All heavy lifting of checking/validation the shape of the data is done by `schema` library. Here we introduce a few new concepts to make schemas flexible and more expressive:
 
-* `types` are basically schemas (see `Schema` protocol). All operations with types return types, but we're trying to deal with them as data not just functions. We gain a lot from such approach (`schema` would force you treat you type checks as black boxes)
+* `types` are basically schemas (see `Schema` protocol). All operations with types return types, but we're trying to deal with them as data not just functions. We gain a lot from such approach (`schema` would force you treat your type checks as black boxes)
 
 * `predicates`, like `(LessThan 10)` or `NonEmpty`, that you can combine using logical operations `and`, `or`, `not` etc (or define your own)
 
 * product types with `Struct` that you can accrete and reduce "on fly" (think, as maps on steroids)
 
-* sum types with explicit dispatching that you can use not loosing flexibility (think, as schema's `conditional` on steroids)
+* sum types with explicit dispatching that you can use not loosing flexibility (think, as `schema/conditional` on steroids)
 
-* `refined` to glue all the above together (think, as schema's `constrained` on steroids)
+* `refined` to glue all the above together (think, as `schema/constrained` on steroids)
 
 And more!
 
@@ -34,7 +32,7 @@ And more!
 
 ## Talks and Tutorials
 
-* [Keep Your Data Safe with Refinement Types](TBD)
+* [Keep Your Data Safe with Refined Types](https://speakerdeck.com/kachayev/keep-your-data-safe-with-refined-types)
 
 ## Inspired By
 
@@ -354,12 +352,11 @@ To find more examples and use cases, please see doc strings (whenever applicable
 ## TODO
 
 - [ ] Update implementation of `schema` protocols for `Struct` and `StructDispatch`
-- [ ] Publish slides from the talk on refinement types and share link here
 - [ ] Start CHANGLELOG
 - [ ] Setup CI with public results
 - [ ] Render and release documentation
 - [ ] Release on Clojars
-- [ ] Reimplement all *intervals* to get better error messages
+- [ ] Reimplement all schemas to get better error messages
 
 ## Contribute
 
@@ -375,5 +372,4 @@ or simply...
 
 ## License
 
-`schema-refined` is licensed under the MIT license, available at [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT)
-and also in the LICENSE file.
+`schema-refined` is licensed under the MIT license, available at [MIT](http://opensource.org/licenses/MIT) and also in the LICENSE file.
