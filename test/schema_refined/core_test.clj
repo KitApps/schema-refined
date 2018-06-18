@@ -183,7 +183,35 @@
       (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 21)
       (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) -28)
       (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 0)
-      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 7))))
+      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 7))
+
+    (t/deftest refined-with-starts-with-predicate
+      (ok! (r/refined s/Str (r/StartsWith "https://")) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str (r/StartsWith "https://"))
+               "ftp://attendify.com/long-file-name.txt"))
+
+    (t/deftest refined-with-ends-with-predicate
+      (ok! (r/refined s/Str (r/EndsWith ".com")) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str (r/EndsWith ".com"))
+               "ftp://attendify.com/long-file-name.txt"))
+
+    (t/deftest refined-with-includes-predicate
+      (ok! (r/refined s/Str (r/Includes "attendify")) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str (r/Includes "attendify"))
+               "https://example.com"))
+
+    (t/deftest refined-with-lower-cased-predicate
+      (ok! (r/refined s/Str r/LowerCased) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str r/LowerCased) "Hello"))
+
+    (t/deftest refined-with-upper-cased-predicate
+      (ok! (r/refined s/Str r/UpperCased) "ACE")
+
+      (not-ok! (r/refined s/Str r/UpperCased) "https://attendify.com"))))
 
 (t/deftest validate-non-empty-values
   (ok! r/NonEmptyStr "doom")
@@ -239,7 +267,7 @@
   (doseq [i (map char (range (int \a) (inc (int \z))))]
     (ok! r/ASCIILetterOrDigitChar (str i)))
   (doseq [i (range 10)]
-    (ok! r/DigitChar (str i)))
+    (ok! r/ASCIILetterOrDigitChar (str i)))
 
   (not-ok! r/ASCIILetterOrDigitChar "attendify.com")
   (not-ok! r/ASCIILetterOrDigitChar "")
@@ -290,6 +318,31 @@
   (not-ok! r/FloatStr "   ")
   (not-ok! r/FloatStr "j")
   (not-ok! r/FloatStr "3_14"))
+
+(t/deftest validate-starts-with-str
+  (ok! (r/StartsWithStr "https://") "https://attendify.com")
+
+  (not-ok! (r/StartsWithStr "https://") "ftp://attendify.com/long-file-name.txt"))
+
+(t/deftest validate-ends-with-str
+  (ok! (r/EndsWithStr ".com") "https://attendify.com")
+
+  (not-ok! (r/EndsWithStr ".com") "ftp://attendify.com/long-file-name.txt"))
+
+(t/deftest validate-includes-str
+  (ok! (r/IncludesStr "attendify") "https://attendify.com")
+
+  (not-ok! (r/IncludesStr "attendify") "https://example.com"))
+
+(t/deftest validate-lower-cased-str
+  (ok! r/LowerCasedStr "https://attendify.com")
+
+  (not-ok! r/LowerCasedStr "Hello"))
+
+(t/deftest validate-upper-cased-str
+  (ok! r/UpperCasedStr "ACE")
+
+  (not-ok! r/UpperCasedStr "https://attendify.com"))
 
 (t/deftest validate-positive-numeric
   (ok! (r/PositiveOf s/Int) 42)
