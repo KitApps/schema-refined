@@ -324,7 +324,7 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `DigitChar`
 * `ASCIILetterChar`
 * `ASCIILetterOrDigitChar`
-* `BitChat`
+* `BitChar`
 * `BitStr`
 * `IntStr`
 * `FloatStr`
