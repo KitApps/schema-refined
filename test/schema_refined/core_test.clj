@@ -297,6 +297,8 @@
 (t/deftest validate-ascii-letter-char
   (doseq [i (map char (range (int \a) (inc (int \z))))]
     (ok! r/ASCIILetterChar (str i)))
+  (doseq [i (map char (range (int \A) (inc (int \Z))))]
+    (ok! r/ASCIILetterChar (str i)))
 
   (not-ok! r/ASCIILetterChar "attendify.com")
   (not-ok! r/ASCIILetterChar "")
@@ -305,6 +307,8 @@
 
 (t/deftest validate-ascii-letter-or-digit-char
   (doseq [i (map char (range (int \a) (inc (int \z))))]
+    (ok! r/ASCIILetterOrDigitChar (str i)))
+  (doseq [i (map char (range (int \A) (inc (int \Z))))]
     (ok! r/ASCIILetterOrDigitChar (str i)))
   (doseq [i (range 10)]
     (ok! r/ASCIILetterOrDigitChar (str i)))

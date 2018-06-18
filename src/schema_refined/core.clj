@@ -446,9 +446,9 @@
 
 (def DigitChar #"^[0-9]$")
 
-(def ASCIILetterChar #"^[a-z]$")
+(def ASCIILetterChar #"^[a-zA-Z]$")
 
-(def ASCIILetterOrDigitChar #"^[0-9a-z]$")
+(def ASCIILetterOrDigitChar #"^[0-9a-zA-Z]$")
 
 (def BitChar #"^[0|1]$")
 
