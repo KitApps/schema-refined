@@ -135,21 +135,25 @@ readable version of conditionals `r/dispatch-on` that covers the fundamental use
 to decide on the branch (option).
 
 ```clojure
-(defn BoundedGeoPolygon [n]
-  (r/BoundedListOf GeoPoint n))
+(def EmptyScrollableList
+  {:items (s/eq [])
+   :totalCount (s/eq 0)
+   :hasNext (s/eq false)
+   :hasPrev (s/eq false)
+   :nextPageCursor (s/eq nil)
+   :prevPageCursor (s/eq nil)})
 
-(def Point (BoundedGeoPolygon 1))
+(defn NonEmptyScrollableListOf [dt]
+  (dispatch-on (juxt :hasNext :hasPrev)
+    [false false] (SinglePageOf dt)
+    [true  false] (FirstPageOf dt)
+    [false true]  (LastPageOf dt)
+    [true  true]  (ScrollableListSliceOf dt)))
 
-(def Line (BoundedGeoPolygon 2))
-
-(def Triangle (BoundedGeoPolygon 3))
-
-(def GeoShape
-  (r/dispatch-on count
-    1 Point
-    2 Line
-    3 Triangle
-    :else RandomShape))
+(defn ScrollableListOf [dt]
+  (dispatch-on :totalCount
+    0 EmptyScrollableList
+    :else (NonEmptyScrollableListOf dt)))
 ```
 
 ### Product Types
