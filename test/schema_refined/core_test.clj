@@ -183,7 +183,74 @@
       (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 21)
       (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) -28)
       (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 0)
-      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 7))))
+      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 7))
+
+    (t/deftest refined-with-starts-with-predicate
+      (ok! (r/refined s/Str (r/StartsWith "https://")) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str (r/StartsWith "https://"))
+               "ftp://attendify.com/long-file-name.txt"))
+
+    (t/deftest refined-with-ends-with-predicate
+      (ok! (r/refined s/Str (r/EndsWith ".com")) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str (r/EndsWith ".com"))
+               "ftp://attendify.com/long-file-name.txt"))
+
+    (t/deftest refined-with-includes-predicate
+      (ok! (r/refined s/Str (r/Includes "attendify")) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str (r/Includes "attendify"))
+               "https://example.com"))
+
+    (t/deftest refined-with-lower-cased-predicate
+      (ok! (r/refined s/Str r/LowerCased) "https://attendify.com")
+
+      (not-ok! (r/refined s/Str r/LowerCased) "Hello"))
+
+    (t/deftest refined-with-upper-cased-predicate
+      (ok! (r/refined s/Str r/UpperCased) "ACE")
+
+      (not-ok! (r/refined s/Str r/UpperCased) "https://attendify.com"))
+
+    (t/deftest refined-with-empty-predicate
+      (ok! (r/refined [s/Num] r/Empty) [])
+      (ok! (r/refined [s/Num] r/Empty) '())
+      (ok! (r/refined s/Str r/Empty) "")
+      (ok! (r/refined {s/Keyword s/Str} r/Empty) {})
+
+      (not-ok! (r/refined s/Str r/Empty) "doom")
+      (not-ok! (r/refined [s/Num] r/Empty) [1 2 3])
+      (not-ok! (r/refined {s/Keyword s/Str} r/Empty) {:boom "Doom"})
+      (not-ok! (r/refined [s/Str] r/Empty) ["a" "b" "c"])
+      (not-ok! (r/refined [s/Any] r/Empty) [["a"] ["b" "c"] ["c" "d"]])
+      (not-ok! (r/refined s/Str r/Empty) nil)
+      (not-ok! (r/refined s/Str r/Empty) '()))
+
+    (t/deftest refined-with-not-empty-predicate
+      (ok! (r/refined s/Str r/NonEmpty) "doom")
+      (ok! (r/refined [s/Num] r/NonEmpty) [1 2 3])
+      (ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {:boom "Doom"})
+      (ok! (r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty) ["a" "b" "c"])
+      (ok! (r/refined [(r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty)] r/NonEmpty)
+           [["a"] ["b" "c"] ["c" "d"]])
+
+      (not-ok! (r/refined [s/Num] r/NonEmpty) [])
+      (not-ok! (r/refined [s/Num] r/NonEmpty) '())
+      (not-ok! (r/refined s/Str r/NonEmpty) nil)
+      (not-ok! (r/refined s/Str r/NonEmpty) '())
+      (not-ok! (r/refined s/Str r/NonEmpty) "")
+      (not-ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {}))))
+
+(t/deftest validate-empty-values
+  (ok! r/EmptyList [])
+  (ok! r/EmptyList '())
+  (ok! r/EmptyMap {})
+
+  (not-ok! r/EmptyList [1 2 3])
+  (not-ok! r/EmptyMap {:boom "Doom"})
+  (not-ok! r/EmptyList ["a" "b" "c"])
+  (not-ok! r/EmptyList [["a"] ["b" "c"] ["c" "d"]]))
 
 (t/deftest validate-non-empty-values
   (ok! r/NonEmptyStr "doom")
@@ -195,13 +262,18 @@
   (not-ok! (r/NonEmptyListOf s/Num) '())
   (not-ok! r/NonEmptyStr nil)
   (not-ok! r/NonEmptyStr '())
-  (not-ok! r/NonEmptyStr ""))
+  (not-ok! r/NonEmptyStr "")
+  (not-ok! (r/NonEmptyMapOf s/Keyword s/Str) {}))
 
 (t/deftest validate-urls
   (ok! r/UriStr "https://attendify.com")
   (ok! r/UriStr "ftp://attendify.com/long-file-name.txt")
   (not-ok! r/UriStr "attendify com")
-  (not-ok! r/UriStr "ftp://"))
+
+  (ok! r/UrlStr "https://attendify.com")
+  (ok! r/UrlStr "ftp://attendify.com/long-file-name.txt")
+  (ok! r/UrlStr "ftp://")
+  (not-ok! r/UrlStr "attendify com"))
 
 (t/deftest range-length-string
   (ok! (r/BoundedSizeStr 1 10) "a")
@@ -212,6 +284,213 @@
   (not-ok! (r/BoundedSizeStr 1 10) "abcdeabcde     ")
   (ok! (r/BoundedSizeStr 1 10 true) "abcdeabcde     ")
   (not-ok! (r/BoundedSizeStr 1 10 true) " "))
+
+(t/deftest validate-digit-char
+  (doseq [i (range 10)]
+    (ok! r/DigitChar (str i)))
+
+  (not-ok! r/DigitChar "attendify.com")
+  (not-ok! r/DigitChar "")
+  (not-ok! r/DigitChar ".")
+  (not-ok! r/DigitChar "j"))
+
+(t/deftest validate-ascii-letter-char
+  (doseq [i (map char (range (int \a) (inc (int \z))))]
+    (ok! r/ASCIILetterChar (str i)))
+  (doseq [i (map char (range (int \A) (inc (int \Z))))]
+    (ok! r/ASCIILetterChar (str i)))
+
+  (not-ok! r/ASCIILetterChar "attendify.com")
+  (not-ok! r/ASCIILetterChar "")
+  (not-ok! r/ASCIILetterChar ".")
+  (not-ok! r/ASCIILetterChar "7"))
+
+(t/deftest validate-ascii-letter-or-digit-char
+  (doseq [i (map char (range (int \a) (inc (int \z))))]
+    (ok! r/ASCIILetterOrDigitChar (str i)))
+  (doseq [i (map char (range (int \A) (inc (int \Z))))]
+    (ok! r/ASCIILetterOrDigitChar (str i)))
+  (doseq [i (range 10)]
+    (ok! r/ASCIILetterOrDigitChar (str i)))
+
+  (not-ok! r/ASCIILetterOrDigitChar "attendify.com")
+  (not-ok! r/ASCIILetterOrDigitChar "")
+  (not-ok! r/ASCIILetterOrDigitChar "."))
+
+(t/deftest validate-bit-char
+  (ok! r/BitChar "0")
+  (ok! r/BitChar "1")
+
+  (not-ok! r/BitChar "attendify.com")
+  (not-ok! r/BitChar "")
+  (not-ok! r/BitChar ".")
+  (not-ok! r/BitChar "j")
+  (not-ok! r/BitChar "7"))
+
+(t/deftest validate-bit-str
+  (ok! r/BitStr "0")
+  (ok! r/BitStr "1")
+  (ok! r/BitStr "0001")
+  (ok! r/BitStr "101010")
+
+  (not-ok! r/BitStr "attendify.com")
+  (not-ok! r/BitStr "   ")
+  (not-ok! r/BitStr "000000200")
+  (not-ok! r/BitStr "j")
+  (not-ok! r/BitStr "1111 "))
+
+(t/deftest validate-int-str
+  (ok! r/IntStr "0")
+  (ok! r/IntStr "3")
+  (ok! r/IntStr "-401")
+  (ok! r/IntStr "101410")
+  (ok! r/IntStr "000000200")
+
+  (not-ok! r/IntStr "attendify.com")
+  (not-ok! r/IntStr "   ")
+  (not-ok! r/IntStr "j")
+  (not-ok! r/IntStr "1111 "))
+
+(t/deftest validate-float-str
+  (ok! r/FloatStr "0")
+  (ok! r/FloatStr "3.14")
+  (ok! r/FloatStr "-123.203201")
+  (ok! r/FloatStr "101410")
+  (ok! r/FloatStr "1111 ")
+
+  (not-ok! r/FloatStr "attendify.com")
+  (not-ok! r/FloatStr "   ")
+  (not-ok! r/FloatStr "j")
+  (not-ok! r/FloatStr "3_14"))
+
+(t/deftest validate-starts-with-str
+  (ok! (r/StartsWithStr "https://") "https://attendify.com")
+
+  (not-ok! (r/StartsWithStr "https://") "ftp://attendify.com/long-file-name.txt"))
+
+(t/deftest validate-ends-with-str
+  (ok! (r/EndsWithStr ".com") "https://attendify.com")
+
+  (not-ok! (r/EndsWithStr ".com") "ftp://attendify.com/long-file-name.txt"))
+
+(t/deftest validate-includes-str
+  (ok! (r/IncludesStr "attendify") "https://attendify.com")
+
+  (not-ok! (r/IncludesStr "attendify") "https://example.com"))
+
+(t/deftest validate-lower-cased-str
+  (ok! r/LowerCasedStr "https://attendify.com")
+
+  (not-ok! r/LowerCasedStr "Hello"))
+
+(t/deftest validate-upper-cased-str
+  (ok! r/UpperCasedStr "ACE")
+
+  (not-ok! r/UpperCasedStr "https://attendify.com"))
+
+(t/deftest validate-positive-numeric
+  (ok! (r/PositiveOf s/Int) 42)
+  (ok! r/PositiveInt 42)
+  (ok! (r/PositiveOf double) 3.14)
+  (ok! r/PositiveDouble 3.14)
+
+  (not-ok! (r/PositiveOf s/Int) 0)
+  (not-ok! r/PositiveInt 0)
+  (not-ok! (r/PositiveOf s/Int) -7)
+  (not-ok! r/PositiveInt -7)
+  (not-ok! (r/PositiveOf double) -3.14)
+  (not-ok! r/PositiveDouble -3.14))
+
+(t/deftest validate-negative-numeric
+  (ok! (r/NegativeOf s/Int) -42)
+  (ok! r/NegativeInt -42)
+  (ok! (r/NegativeOf double) -3.14)
+  (ok! r/NegativeDouble -3.14)
+
+  (not-ok! (r/NegativeOf s/Int) 0)
+  (not-ok! r/NegativeInt 0)
+  (not-ok! (r/NegativeOf s/Int) 7)
+  (not-ok! r/NegativeInt 7)
+  (not-ok! (r/NegativeOf double) 3.14)
+  (not-ok! r/NegativeDouble 3.14))
+
+(t/deftest validate-non-negative-numeric
+  (ok! (r/NonNegativeOf s/Int) 42)
+  (ok! r/NonNegativeInt 42)
+  (ok! (r/NonNegativeOf double) 3.14)
+  (ok! r/NonNegativeDouble 3.14)
+  (ok! (r/NonNegativeOf s/Int) 0)
+  (ok! r/NonNegativeInt 0)
+
+  (not-ok! (r/NonNegativeOf s/Int) -7)
+  (not-ok! r/NonNegativeInt -7)
+  (not-ok! (r/NonNegativeOf double) -3.14)
+  (not-ok! r/NonNegativeDouble -3.14))
+
+(t/deftest validate-non-positive-numeric
+  (ok! (r/NonPositiveOf s/Int) -42)
+  (ok! r/NonPositiveInt -42)
+  (ok! (r/NonPositiveOf double) -3.14)
+  (ok! r/NonPositiveDouble -3.14)
+  (ok! (r/NonPositiveOf s/Int) 0)
+  (ok! r/NonPositiveInt 0)
+
+  (not-ok! (r/NonPositiveOf s/Int) 7)
+  (not-ok! r/NonPositiveInt 7)
+  (not-ok! (r/NonPositiveOf double) 3.14)
+  (not-ok! r/NonPositiveDouble 3.14))
+
+(t/deftest validate-numeric-open-interval
+  (ok! (r/OpenIntervalOf s/Int 0 43) 42)
+  (ok! (r/OpenIntervalOf double 0.0 1.0) 0.7)
+
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) 0)
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) 43)
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/OpenIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 0.0)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 1.0)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) -3.14))
+
+(t/deftest validate-numeric-closed-interval
+  (ok! (r/ClosedIntervalOf s/Int 0 43) 42)
+  (ok! (r/ClosedIntervalOf s/Int 0 43) 0)
+  (ok! (r/ClosedIntervalOf s/Int 0 43) 43)
+  (ok! (r/ClosedIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/ClosedIntervalOf double 0.0 1.0) 0.0)
+  (ok! (r/ClosedIntervalOf double 0.0 1.0) 1.0)
+
+  (not-ok! (r/ClosedIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/ClosedIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/ClosedIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/ClosedIntervalOf double 0.0 1.0) -3.14))
+
+(t/deftest validate-numeric-open-closed-interval
+  (ok! (r/OpenClosedIntervalOf s/Int 0 43) 42)
+  (ok! (r/OpenClosedIntervalOf s/Int 0 43) 43)
+  (ok! (r/OpenClosedIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/OpenClosedIntervalOf double 0.0 1.0) 1.0)
+
+  (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) 0)
+  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) -3.14)
+  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) 0.0))
+
+(t/deftest validate-numeric-closed-open-interval
+  (ok! (r/ClosedOpenIntervalOf s/Int 0 43) 42)
+  (ok! (r/ClosedOpenIntervalOf s/Int 0 43) 0)
+  (ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 0.0)
+
+  (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) -7)
+  (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) 108)
+  (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) 43)
+  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 3.14)
+  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) -3.14)
+  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 1.0))
 
 (def -Ticket (r/Struct :id r/NonEmptyStr
                         :rev r/NonEmptyStr
