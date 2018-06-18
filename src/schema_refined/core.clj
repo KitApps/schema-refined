@@ -1,5 +1,4 @@
 (ns schema-refined.core
-  (:refer-clojure :exclude [uri?])
   (:require [schema.core :as s]
             [schema.spec.core :as schema-spec]
             [schema.spec.variant :as schema-variant]
@@ -30,9 +29,9 @@
    {:pre [(predicate? pred)]}
    (let [pred-str (if (satisfies? PredicateShow pred)
                     (predicate-show pred sym)
-                    (str pred)) ]
+                    (str pred))]
      (cond->> pred-str
-       (and bounded-count (not (cstr/starts-with? pred-str "(")))
+       (and bounded? (not (cstr/starts-with? pred-str "(")))
        (format "(%s)")))))
 
 (defn predicate-print-method [pred ^java.io.Writer writer]
@@ -86,7 +85,7 @@
   (let [schema (:schema rs)
         schema-name (if (fn? schema?)
                       (schema-utils/fn-name schema)
-                      schema?)
+                      schema)
         f (format "#Refined{v: %s | %s}" schema-name (predicate->str (:pred rs)))]
     (.write writer f)))
 
@@ -477,23 +476,23 @@
 
 (def FloatStr (refined NonEmptyStr parsable-float?))
 
-(defn uri? [uri]
+(defn parsable-uri? [uri]
   (try
     (URI. uri)
     true
     (catch URISyntaxException _ false)))
 
-(def Uri (FunctionPredicate. uri?))
+(def Uri (FunctionPredicate. parsable-uri?))
 
 (def UriStr (refined NonEmptyStr Uri))
 
-(defn url? [url]
+(defn parsable-url? [url]
   (try
     (URL. url)
     true
     (catch MalformedURLException _ false)))
 
-(def Url (FunctionPredicate. url?))
+(def Url (FunctionPredicate. parsable-url?))
 
 (def UrlStr (refined NonEmptyStr Url))
 
