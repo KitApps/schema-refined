@@ -559,20 +559,22 @@
          (pos? right)]}
   (On count (ClosedInterval left right)))
 
-(defrecord UniqueItemsOverPredicate [f]
+(defrecord DistinctByPredicate [f]
   Predicate
   (predicate-apply [_ value]
-    (= (count value) (count (set (map f value)))))
+    (distinct? (map f value)))
   PredicateShow
   (predicate-show [_ sym]
-    ""))
+    (if (= identity f)
+      (format "(distinct? %s)" sym)
+      (format "(distinct-by? %s %s)" (schema-utils/fn-name f) sym))))
 
-(def UniqueItems
-  (UniqueItemsOverPredicate. identity))
+(def Distinct
+  (DistinctByPredicate. identity))
 
-(defn UniqueItemsOver [f]
+(defn DistinctBy [f]
   {:pre [(ifn? f)]}
-  (UniqueItemsOverPredicate. f))
+  (DistinctByPredicate. f))
 
 (defrecord ForallPredicate [pred]
   Predicate
@@ -696,13 +698,13 @@
          (schema? value-dt)]}
   (BoundedMapOf key-dt value-dt 1))
 
-(defn UniqueItemsListOf [dt]
+(defn DistinctListOf [dt]
   {:pre [(schema? dt)]}
-  (refined [dt] UniqueItems))
+  (refined [dt] Distinct))
 
-(defn NonEmptyUniqueItemsListOf [dt]
+(defn NonEmptyDistinctListOf [dt]
   {:pre [(schema? dt)]}
-  (refined (UniqueItemsListOf dt) NonEmpty))
+  (refined (DistinctListOf dt) NonEmpty))
 
 ;;
 ;; maps

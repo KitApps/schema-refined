@@ -323,8 +323,8 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `Empty`
 * `NonEmpty`
 * `BoundedSize`
-* `UniqueItems`
-* `UniqueItemsOver`
+* `Distinct`
+* `DistinctBy`
 * `Forall`
 * `Exists`
 * `First`
