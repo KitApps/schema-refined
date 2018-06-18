@@ -233,6 +233,10 @@ To find more examples and use cases, please see doc strings (whenever applicable
 
 * Try to catch "impossible" predicates (which defines empty sets of values), like `(And (Less 10) (Greater 100))`
 
+* Clean and concise way to represent transformation invariants (right now you can only define your output
+  type as a function from input value, doing manual manipulations, which might be kinda tricky and not very
+  obvious for the reader of your code)
+
 ## Appendix A: Builtin Predicates & Types
 
 ### Predicate Combinators
