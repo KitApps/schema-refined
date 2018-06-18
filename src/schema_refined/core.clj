@@ -452,7 +452,7 @@
 
 (def BitChar #"^[0|1]$")
 
-(def BitStr #"[0|1]*")
+(def BitStr #"^[0|1]*$")
 
 (defn parsable-int? [s]
   (try
