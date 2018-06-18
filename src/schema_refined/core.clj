@@ -288,29 +288,61 @@
 (def Descending
   (reify Predicate))
 
+(defrecord OpenIntervalPredicate [a b]
+  Predicate
+  (predicate-apply [_ value]
+    (< a value b))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s ∈ (%s, %s)" sym a b)))
+
 (defn OpenInterval
   "a < value < b"
   [a b]
   {:pre [(< a b)]}
-  (FunctionPredicate. #(< a % b)))
+  (OpenIntervalPredicate. a b))
+
+(defrecord ClosedIntervalPredicate [a b]
+  Predicate
+  (predicate-apply [_ value]
+    (<= a value b))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s ∈ [%s, %s]" sym a b)))
 
 (defn ClosedInterval
   "a <= value <= b"
   [a b]
   {:pre [(<= a b)]}
-  (FunctionPredicate. #(<= a % b)))
+  (ClosedIntervalPredicate. a b))
+
+(defrecord OpenClosedIntervalPredicate [a b]
+  Predicate
+  (predicate-apply [_ value]
+    (and (< a value) (<= value b)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s ∈ (%s, %s]" sym a b)))
 
 (defn OpenClosedInterval
   "a < value <= b"
   [a b]
   {:pre [(< a b)]}
-  (FunctionPredicate. #(and (< a %1) (<= %1 b))))
+  (OpenClosedIntervalPredicate. a b))
+
+(defrecord ClosedOpenIntervalPredicate [a b]
+  Predicate
+  (predicate-apply [_ value]
+    (and (<= a value) (< value b)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s ∈ [%s, %s)" sym a b)))
 
 (defn ClosedOpenInterval
   "a <= value < b"
   [a b]
   {:pre [(< a b)]}
-  (FunctionPredicate. #(and (<= a %1) (< %1 b))))
+  (ClosedOpenIntervalPredicate. a b))
 
 (defn Epsilon [center radius]
   (OpenInterval (- center radius) (+ center radius)))
@@ -323,10 +355,18 @@
 
 (def Odd (FunctionPredicate. odd?))
 
+(defrecord ModuloPredicate [div o]
+  Predicate
+  (predicate-apply [_ value]
+    (= o (mod value div)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (format "%s mod %s = %s" sym div o)))
+
 (defn Modulo
   "The value modulus by div = o"
   [div o]
-  (FunctionPredicate. #(= o (mod % num))))
+  (ModuloPredicate. div o))
 
 (defn DivisibleBy [n]
   (Modulo n 0))
