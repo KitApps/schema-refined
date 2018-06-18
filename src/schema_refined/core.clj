@@ -569,6 +569,10 @@
       (format "(distinct? %s)" sym)
       (format "(distinct-by? %s %s)" (schema-utils/fn-name f) sym))))
 
+(defmethod print-method DistinctByPredicate
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
+
 (def Distinct
   (DistinctByPredicate. identity))
 
