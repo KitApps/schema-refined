@@ -1,6 +1,6 @@
 language: clojure
 lein: lein
-script: lein do clean, test
+script: lein do clean, with-profiles dev,1.8:dev,1.9:dev,1.10 test
 jdk:
   - oraclejdk8
   - oraclejdk9
