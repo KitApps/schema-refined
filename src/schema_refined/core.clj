@@ -559,14 +559,33 @@
          (pos? right)]}
   (On count (ClosedInterval left right)))
 
-;; xxx: use reify
+(defrecord UniqueItemsOverPredicate [f]
+  Predicate
+  (predicate-apply [_ value]
+    (= (count value) (count (set (map f value)))))
+  PredicateShow
+  (predicate-show [_ sym]
+    ""))
+
 (def UniqueItems
-  (FunctionPredicate. #(= (count %1) (count (set %1)))))
+  (UniqueItemsOverPredicate. identity))
+
+(defn UniqueItemsOver [f]
+  {:pre [(ifn? f)]}
+  (UniqueItemsOverPredicate. f))
 
 (defrecord ForallPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (every? (partial predicate-apply pred) value)))
+    (every? (partial predicate-apply pred) value))
+  PredicateShow
+  (predicate-show [_ sym]
+    (let [sym' (str sym "'")]
+      (format "∀%s ∊ %s: %s" sym' sym (predicate->str pred sym' false)))))
+
+(defmethod print-method ForallPredicate
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
 
 (defn Forall [p]
   (ForallPredicate. (coerce p)))
@@ -574,12 +593,19 @@
 (defrecord ExistsPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (not (nil? (some? (partial predicate-apply pred) value)))))
+    (not (nil? (some? (partial predicate-apply pred) value))))
+  PredicateShow
+  (predicate-show [_ sym]
+    (let [sym' (str sym "'")]
+      (format "∃%s ∊ %s: %s" sym' sym (predicate->str pred sym' false)))))
+
+(defmethod print-method ExistsPredicate
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
 
 (defn Exists [p]
   (ExistsPredicate. (coerce p)))
 
-;; head in clojure
 (defn First [p]
   (On first (coerce p)))
 
@@ -589,13 +615,20 @@
 (defrecord IndexPredicate [n pred]
   Predicate
   (predicate-apply [_ value]
-    (predicate-apply pred (nth value n))))
+    (predicate-apply pred (nth value n)))
+  PredicateShow
+  (predicate-show [_ sym]
+    (let [sym' (str sym "'")]
+      (format "%s = %s[%s]: %s" sym' sym n (predicate->str pred sym' false)))))
+
+(defmethod print-method IndexPredicate
+  [p ^java.io.Writer writer]
+  (predicate-print-method p writer))
 
 (defn Index [n p]
   {:pre [(integer? n)]}
   (IndexPredicate. n (coerce p)))
 
-;; tail in clojure
 (defn Rest [p]
   (On rest (Forall p)))
 
