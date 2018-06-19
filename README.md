@@ -306,6 +306,7 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `NegativeDouble`
 * `NonNegativeDouble`
 * `NonPositiveDouble`
+* `EpsilonOf`
 
 ### String Predicates
 

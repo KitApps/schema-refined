@@ -424,6 +424,14 @@
 
 (def NonPositiveDouble (NonPositiveOf double))
 
+(defn EpsilonOf [dt a b]
+  {:pre [(schema? dt)]}
+  (refined dt (OpenInterval a b)))
+
+;;
+;; ordering types
+;;
+
 (defn OpenIntervalOf
   "a < value < b"
   [dt a b]

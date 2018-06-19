@@ -1,4 +1,4 @@
-(defproject com.attendify/schema-refined "0.3.0-alpha4"
+(defproject com.attendify/schema-refined "0.3.0-alpha5"
   :description "Clojure library to keep you away from bugs with precise schemas (refined types with runtime checks)"
   :Url "https://github.com/KitApps/schema-refined"
   :license {:name "The MIT License"
