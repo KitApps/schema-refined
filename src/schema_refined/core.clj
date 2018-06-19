@@ -675,7 +675,9 @@
   PredicateShow
   (predicate-show [_ sym]
     (let [sym' (format "[%s[i], %s[i+1]]" sym sym)]
-      (format "∀i ∊ [0, (count %s)): %s" sym (predicate->str pred sym' false)))))
+      (format "∀i ∊ [0, (dec (count %s))): %s"
+              sym
+              (predicate->str pred sym' false)))))
 
 (defmethod print-method PairwisePredicate
   [p ^java.io.Writer writer]
