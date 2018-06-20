@@ -585,7 +585,8 @@
 (defrecord DistinctByPredicate [f]
   Predicate
   (predicate-apply [_ value]
-    (distinct? (map f value)))
+    (or (empty? value)
+        (apply distinct? (map f value))))
   PredicateShow
   (predicate-show [_ sym]
     (if (= identity f)

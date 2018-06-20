@@ -262,7 +262,22 @@
       (not-ok! (r/refined {s/Num s/Num} BoundedSize) {})
       (not-ok! (r/refined [s/Num] BoundedSize) (range (inc max-size)))
       (not-ok! (r/refined #{s/Num} BoundedSize) (-> max-size inc range set))
-      (not-ok! (r/refined {s/Num s/Num} BoundedSize) (numeric-map (inc max-size))))))
+      (not-ok! (r/refined {s/Num s/Num} BoundedSize) (numeric-map (inc max-size)))))
+
+  (t/deftest refined-with-distinct-predicate
+    (ok! (r/refined [s/Num] r/Distinct) (range 7))
+    (ok! (r/refined [s/Num] r/Distinct) [])
+
+    (not-ok! (r/refined [s/Num] r/Distinct) (repeat 7 1)))
+
+  (t/deftest refined-with-distinct-by-predicate
+    (ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo)) (map #(-> {:foo %}) (range 7)))
+    (ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo)) [])
+
+    (not-ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo))
+             (->> 1
+                  (repeat 7)
+                  (map #(-> {:foo %}))) )))
 
 (t/deftest validate-empty-values
   (ok! r/EmptyList [])
@@ -558,6 +573,23 @@
   (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 3.14)
   (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) -3.14)
   (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 1.0))
+
+(t/deftest validate-distinct-list
+  (ok! (r/DistinctListOf s/Num) (range 7))
+  (ok! (r/DistinctListOf s/Num) [])
+  (ok! (r/NonEmptyDistinctListOf s/Num) (range 7))
+
+  (not-ok! (r/DistinctListOf s/Num) (repeat 7 1))
+  (not-ok! (r/NonEmptyDistinctListOf s/Num) []))
+
+(t/deftest refined-with-distinct-by-predicate
+  (ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo)) (map #(-> {:foo %}) (range 7)))
+  (ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo)) [])
+
+  (not-ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo))
+           (->> 1
+                (repeat 7)
+                (map #(-> {:foo %}))) ))
 
 (def -Ticket (r/Struct :id r/NonEmptyStr
                         :rev r/NonEmptyStr
