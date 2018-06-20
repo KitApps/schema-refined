@@ -443,6 +443,9 @@
 (t/deftest validate-numeric-open-interval
   (ok! (r/OpenIntervalOf s/Int 0 43) 42)
   (ok! (r/OpenIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/EpsilonOf s/Int 10 5) 10)
+  (ok! (r/EpsilonOf s/Int 10 5) 13)
+  (ok! (r/EpsilonOf s/Int 10 5) 7)
 
   (not-ok! (r/OpenIntervalOf s/Int 0 43) 0)
   (not-ok! (r/OpenIntervalOf s/Int 0 43) 43)
@@ -451,7 +454,11 @@
   (not-ok! (r/OpenIntervalOf double 0.0 1.0) 0.0)
   (not-ok! (r/OpenIntervalOf double 0.0 1.0) 1.0)
   (not-ok! (r/OpenIntervalOf double 0.0 1.0) 3.14)
-  (not-ok! (r/OpenIntervalOf double 0.0 1.0) -3.14))
+  (not-ok! (r/OpenIntervalOf double 0.0 1.0) -3.14)
+  (not-ok! (r/EpsilonOf s/Int 10 5) 5)
+  (not-ok! (r/EpsilonOf s/Int 10 5) 15)
+  (not-ok! (r/EpsilonOf s/Int 10 5) -7)
+  (not-ok! (r/EpsilonOf s/Int 10 5) 108))
 
 (t/deftest validate-numeric-closed-interval
   (ok! (r/ClosedIntervalOf s/Int 0 43) 42)

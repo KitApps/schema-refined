@@ -424,9 +424,9 @@
 
 (def NonPositiveDouble (NonPositiveOf double))
 
-(defn EpsilonOf [dt a b]
+(defn EpsilonOf [dt center radius]
   {:pre [(schema? dt)]}
-  (refined dt (OpenInterval a b)))
+  (refined dt (Epsilon center radius)))
 
 ;;
 ;; ordering types
