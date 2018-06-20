@@ -9,11 +9,17 @@
 (defmacro not-ok! [dt value]
   `(t/is (some? (s/check ~dt ~value))))
 
+(defn numeric-map [size]
+  (->> size
+       range
+       (map-indexed vector)
+       (into {})))
+
 (t/testing "refined"
   (let [LatCoord (r/refined double (r/OpenClosedInterval -90.0 90.0))
         LngCoord (r/OpenClosedIntervalOf double -180.0 180.0)
         GeoPoint {:lat LatCoord :lng LngCoord}
-        Route (r/BoundedListOf GeoPoint 2 50)
+        Route    (r/BoundedListOf GeoPoint 2 50)
 
         input [{:lat 47.3529 :lng 8.5199}
                {:lat 51.5085 :lng -0.0762}
@@ -29,218 +35,234 @@
             InRome {:lat (r/refined double (r/OpenInterval 41.87 41.93))
                     :lng (r/refined double (r/OpenInterval 12.46 12.51))}
 
-            RouteFromZurich (r/refined Route (r/First InZurich))
-            RouteToRome (r/refined Route (r/Last InRome))
+            RouteFromZurich       (r/refined Route (r/First InZurich))
+            RouteToRome           (r/refined Route (r/Last InRome))
             RouteFromZurichToRome (r/refined Route (r/And (r/First InZurich) (r/Last InRome)))
 
-            FromZurichToRome (r/And (r/First InZurich) (r/Last InRome))
+            FromZurichToRome                   (r/And (r/First InZurich) (r/Last InRome))
             RouteFromZurichToRomeWithLess3Hops (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5)))]
         (ok! RouteFromZurichToRome input)
         (ok! RouteFromZurichToRomeWithLess3Hops input)))
-
-    (t/deftest refined-with-boolean-predicates
-      (ok! (r/refined s/Int (r/Not r/NegativeInt)) 42)
-      (ok! (r/refined s/Int (r/And r/PositiveInt (r/Less 108))) 42)
-      (ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -42)
-
-      (not-ok! (r/refined s/Int (r/Not r/NegativeInt)) -42)
-      (not-ok! (r/refined s/Int (r/And r/PositiveInt  (r/Less 108))) 142)
-      (not-ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -3))
 
     (t/deftest refined-with-on-predicate
       (ok! (r/refined GeoPoint (r/On :lng r/NegativeDouble))
            {:lat 51.5085 :lng -0.0762})
 
       (not-ok! (r/refined GeoPoint (r/On :lat r/NegativeDouble))
-               {:lat 47.3529 :lng 8.5199}))
+               {:lat 47.3529 :lng 8.5199})))
 
-    (t/deftest refined-with-equal-predicate
-      (ok! (r/refined s/Int (r/Equal 42)) 42)
-      (ok! (r/refined s/Str (r/Equal "doom")) "doom")
+  (t/deftest refined-with-boolean-predicates
+    (ok! (r/refined s/Int (r/Not r/NegativeInt)) 42)
+    (ok! (r/refined s/Int (r/And r/PositiveInt (r/Less 108))) 42)
+    (ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -42)
 
-      (not-ok! (r/refined s/Int (r/Equal 42)) 43)
-      (not-ok! (r/refined s/Str (r/Equal "doom")) "Doom"))
+    (not-ok! (r/refined s/Int (r/Not r/NegativeInt)) -42)
+    (not-ok! (r/refined s/Int (r/And r/PositiveInt  (r/Less 108))) 142)
+    (not-ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -3))
 
-    (t/deftest refined-with-less-predicate
-      (ok! (r/refined s/Int (r/Less 108)) 42)
-      (ok! (r/refined double (r/Less 0.7)) 0.5)
+  (t/deftest refined-with-equal-predicate
+    (ok! (r/refined s/Int (r/Equal 42)) 42)
+    (ok! (r/refined s/Str (r/Equal "doom")) "doom")
 
-      (not-ok! (r/refined s/Int (r/Less 108)) 108)
-      (not-ok! (r/refined double (r/Less 0.7)) 3.14))
+    (not-ok! (r/refined s/Int (r/Equal 42)) 43)
+    (not-ok! (r/refined s/Str (r/Equal "doom")) "Doom"))
 
-    (t/deftest refined-with-less-or-equal-predicate
-      (ok! (r/refined s/Int (r/LessOrEqual 108)) 42)
-      (ok! (r/refined s/Int (r/LessOrEqual 108)) 108)
-      (ok! (r/refined double (r/LessOrEqual 0.7)) 0.7)
+  (t/deftest refined-with-less-predicate
+    (ok! (r/refined s/Int (r/Less 108)) 42)
+    (ok! (r/refined double (r/Less 0.7)) 0.5)
 
-      (not-ok! (r/refined s/Int (r/LessOrEqual 108)) 109)
-      (not-ok! (r/refined double (r/LessOrEqual 0.7)) 3.14))
+    (not-ok! (r/refined s/Int (r/Less 108)) 108)
+    (not-ok! (r/refined double (r/Less 0.7)) 3.14))
 
-    (t/deftest refined-with-greater-predicate
-      (ok! (r/refined s/Int (r/Greater 42)) 108)
-      (ok! (r/refined double (r/Greater 0.5)) 0.7)
+  (t/deftest refined-with-less-or-equal-predicate
+    (ok! (r/refined s/Int (r/LessOrEqual 108)) 42)
+    (ok! (r/refined s/Int (r/LessOrEqual 108)) 108)
+    (ok! (r/refined double (r/LessOrEqual 0.7)) 0.7)
 
-      (not-ok! (r/refined s/Int (r/Greater 108)) 108)
-      (not-ok! (r/refined double (r/Greater 3.14)) 0.7))
+    (not-ok! (r/refined s/Int (r/LessOrEqual 108)) 109)
+    (not-ok! (r/refined double (r/LessOrEqual 0.7)) 3.14))
 
-    (t/deftest refined-with-greater-or-equal-predicate
-      (ok! (r/refined s/Int (r/GreaterOrEqual 42)) 108)
-      (ok! (r/refined s/Int (r/GreaterOrEqual 108)) 108)
-      (ok! (r/refined double (r/GreaterOrEqual 0.7)) 0.7)
+  (t/deftest refined-with-greater-predicate
+    (ok! (r/refined s/Int (r/Greater 42)) 108)
+    (ok! (r/refined double (r/Greater 0.5)) 0.7)
 
-      (not-ok! (r/refined s/Int (r/GreaterOrEqual 109)) 108)
-      (not-ok! (r/refined double (r/GreaterOrEqual 3.14)) 0.7))
+    (not-ok! (r/refined s/Int (r/Greater 108)) 108)
+    (not-ok! (r/refined double (r/Greater 3.14)) 0.7))
 
-    (t/deftest refined-with-open-interval-predicate
-      (ok! (r/refined s/Int (r/OpenInterval 0 43)) 42)
-      (ok! (r/refined double (r/OpenInterval 0.0 1.0)) 0.7)
-      (ok! (r/refined s/Int (r/Epsilon 10 5)) 10)
-      (ok! (r/refined s/Int (r/Epsilon 10 5)) 13)
-      (ok! (r/refined s/Int (r/Epsilon 10 5)) 7)
+  (t/deftest refined-with-greater-or-equal-predicate
+    (ok! (r/refined s/Int (r/GreaterOrEqual 42)) 108)
+    (ok! (r/refined s/Int (r/GreaterOrEqual 108)) 108)
+    (ok! (r/refined double (r/GreaterOrEqual 0.7)) 0.7)
 
-      (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 0)
-      (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 43)
-      (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) -7)
-      (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 108)
-      (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 0.0)
-      (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 1.0)
-      (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 3.14)
-      (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) -3.14)
-      (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 5)
-      (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 15)
-      (not-ok! (r/refined s/Int (r/Epsilon 10 5)) -7)
-      (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 108))
+    (not-ok! (r/refined s/Int (r/GreaterOrEqual 109)) 108)
+    (not-ok! (r/refined double (r/GreaterOrEqual 3.14)) 0.7))
 
-    (t/deftest refined-with-closed-interval-predicate
-      (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 42)
-      (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 0)
-      (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 43)
-      (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 0.7)
-      (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 0.0)
-      (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 1.0)
+  (t/deftest refined-with-open-interval-predicate
+    (ok! (r/refined s/Int (r/OpenInterval 0 43)) 42)
+    (ok! (r/refined double (r/OpenInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined s/Int (r/Epsilon 10 5)) 10)
+    (ok! (r/refined s/Int (r/Epsilon 10 5)) 13)
+    (ok! (r/refined s/Int (r/Epsilon 10 5)) 7)
 
-      (not-ok! (r/refined s/Int (r/ClosedInterval 0 43)) -7)
-      (not-ok! (r/refined s/Int (r/ClosedInterval 0 43)) 108)
-      (not-ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 3.14)
-      (not-ok! (r/refined double (r/ClosedInterval 0.0 1.0)) -3.14))
+    (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 0)
+    (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 43)
+    (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) -7)
+    (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 108)
+    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 0.0)
+    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 1.0)
+    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) -3.14)
+    (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 5)
+    (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 15)
+    (not-ok! (r/refined s/Int (r/Epsilon 10 5)) -7)
+    (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 108))
 
-    (t/deftest refined-with-open-closed-interval-predicate
-      (ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 42)
-      (ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 43)
-      (ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 0.7)
-      (ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 1.0)
+  (t/deftest refined-with-closed-interval-predicate
+    (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 42)
+    (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 0)
+    (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 43)
+    (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 0.0)
+    (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 1.0)
 
-      (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) -7)
-      (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 108)
-      (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 0)
-      (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 3.14)
-      (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) -3.14)
-      (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 0.0))
+    (not-ok! (r/refined s/Int (r/ClosedInterval 0 43)) -7)
+    (not-ok! (r/refined s/Int (r/ClosedInterval 0 43)) 108)
+    (not-ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined double (r/ClosedInterval 0.0 1.0)) -3.14))
 
-    (t/deftest refined-with-closed-open-interval-predicate
-      (ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 42)
-      (ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 0)
-      (ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 0.7)
-      (ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 0.0)
+  (t/deftest refined-with-open-closed-interval-predicate
+    (ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 42)
+    (ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 43)
+    (ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 1.0)
 
-      (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) -7)
-      (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 108)
-      (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 43)
-      (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 3.14)
-      (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) -3.14)
-      (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 1.0))
+    (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) -7)
+    (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 108)
+    (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 0)
+    (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) -3.14)
+    (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 0.0))
 
-    (t/deftest refined-with-even-predicate
-      (ok! (r/refined s/Int r/Even) 108)
+  (t/deftest refined-with-closed-open-interval-predicate
+    (ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 42)
+    (ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 0)
+    (ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 0.0)
 
-      (not-ok! (r/refined s/Int r/Even) 13))
+    (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) -7)
+    (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 108)
+    (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 43)
+    (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) -3.14)
+    (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 1.0))
 
-    (t/deftest refined-with-odd-predicate
-      (ok! (r/refined s/Int r/Odd) 13)
+  (t/deftest refined-with-even-predicate
+    (ok! (r/refined s/Int r/Even) 108)
 
-      (not-ok! (r/refined s/Int r/Odd) 108))
+    (not-ok! (r/refined s/Int r/Even) 13))
 
-    (t/deftest refined-with-modulo-predicate
-      (ok! (r/refined s/Int (r/Modulo 7 3)) 24)
-      (ok! (r/refined s/Int (r/Modulo 7 3)) -25)
+  (t/deftest refined-with-odd-predicate
+    (ok! (r/refined s/Int r/Odd) 13)
 
-      (not-ok! (r/refined s/Int (r/Modulo 7 3)) 25)
-      (not-ok! (r/refined s/Int (r/Modulo 7 3)) -24))
+    (not-ok! (r/refined s/Int r/Odd) 108))
 
-    (t/deftest refined-with-divisible-by-predicate
-      (ok! (r/refined s/Int (r/DivisibleBy 7)) 21)
-      (ok! (r/refined s/Int (r/DivisibleBy 7)) -28)
-      (ok! (r/refined s/Int (r/DivisibleBy 7)) 0)
-      (ok! (r/refined s/Int (r/DivisibleBy 7)) 7)
+  (t/deftest refined-with-modulo-predicate
+    (ok! (r/refined s/Int (r/Modulo 7 3)) 24)
+    (ok! (r/refined s/Int (r/Modulo 7 3)) -25)
 
-      (not-ok! (r/refined s/Int (r/DivisibleBy 7)) 25)
-      (not-ok! (r/refined s/Int (r/DivisibleBy 7)) -24))
+    (not-ok! (r/refined s/Int (r/Modulo 7 3)) 25)
+    (not-ok! (r/refined s/Int (r/Modulo 7 3)) -24))
 
-    (t/deftest refined-with-non-divisible-by-predicate
-      (ok! (r/refined s/Int (r/NonDivisibleBy 7)) 25)
-      (ok! (r/refined s/Int (r/NonDivisibleBy 7)) -24)
+  (t/deftest refined-with-divisible-by-predicate
+    (ok! (r/refined s/Int (r/DivisibleBy 7)) 21)
+    (ok! (r/refined s/Int (r/DivisibleBy 7)) -28)
+    (ok! (r/refined s/Int (r/DivisibleBy 7)) 0)
+    (ok! (r/refined s/Int (r/DivisibleBy 7)) 7)
 
-      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 21)
-      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) -28)
-      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 0)
-      (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 7))
+    (not-ok! (r/refined s/Int (r/DivisibleBy 7)) 25)
+    (not-ok! (r/refined s/Int (r/DivisibleBy 7)) -24))
 
-    (t/deftest refined-with-starts-with-predicate
-      (ok! (r/refined s/Str (r/StartsWith "https://")) "https://attendify.com")
+  (t/deftest refined-with-non-divisible-by-predicate
+    (ok! (r/refined s/Int (r/NonDivisibleBy 7)) 25)
+    (ok! (r/refined s/Int (r/NonDivisibleBy 7)) -24)
 
-      (not-ok! (r/refined s/Str (r/StartsWith "https://"))
-               "ftp://attendify.com/long-file-name.txt"))
+    (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 21)
+    (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) -28)
+    (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 0)
+    (not-ok! (r/refined s/Int (r/NonDivisibleBy 7)) 7))
 
-    (t/deftest refined-with-ends-with-predicate
-      (ok! (r/refined s/Str (r/EndsWith ".com")) "https://attendify.com")
+  (t/deftest refined-with-starts-with-predicate
+    (ok! (r/refined s/Str (r/StartsWith "https://")) "https://attendify.com")
 
-      (not-ok! (r/refined s/Str (r/EndsWith ".com"))
-               "ftp://attendify.com/long-file-name.txt"))
+    (not-ok! (r/refined s/Str (r/StartsWith "https://"))
+             "ftp://attendify.com/long-file-name.txt"))
 
-    (t/deftest refined-with-includes-predicate
-      (ok! (r/refined s/Str (r/Includes "attendify")) "https://attendify.com")
+  (t/deftest refined-with-ends-with-predicate
+    (ok! (r/refined s/Str (r/EndsWith ".com")) "https://attendify.com")
 
-      (not-ok! (r/refined s/Str (r/Includes "attendify"))
-               "https://example.com"))
+    (not-ok! (r/refined s/Str (r/EndsWith ".com"))
+             "ftp://attendify.com/long-file-name.txt"))
 
-    (t/deftest refined-with-lower-cased-predicate
-      (ok! (r/refined s/Str r/LowerCased) "https://attendify.com")
+  (t/deftest refined-with-includes-predicate
+    (ok! (r/refined s/Str (r/Includes "attendify")) "https://attendify.com")
 
-      (not-ok! (r/refined s/Str r/LowerCased) "Hello"))
+    (not-ok! (r/refined s/Str (r/Includes "attendify"))
+             "https://example.com"))
 
-    (t/deftest refined-with-upper-cased-predicate
-      (ok! (r/refined s/Str r/UpperCased) "ACE")
+  (t/deftest refined-with-lower-cased-predicate
+    (ok! (r/refined s/Str r/LowerCased) "https://attendify.com")
 
-      (not-ok! (r/refined s/Str r/UpperCased) "https://attendify.com"))
+    (not-ok! (r/refined s/Str r/LowerCased) "Hello"))
 
-    (t/deftest refined-with-empty-predicate
-      (ok! (r/refined [s/Num] r/Empty) [])
-      (ok! (r/refined [s/Num] r/Empty) '())
-      (ok! (r/refined s/Str r/Empty) "")
-      (ok! (r/refined {s/Keyword s/Str} r/Empty) {})
+  (t/deftest refined-with-upper-cased-predicate
+    (ok! (r/refined s/Str r/UpperCased) "ACE")
 
-      (not-ok! (r/refined s/Str r/Empty) "doom")
-      (not-ok! (r/refined [s/Num] r/Empty) [1 2 3])
-      (not-ok! (r/refined {s/Keyword s/Str} r/Empty) {:boom "Doom"})
-      (not-ok! (r/refined [s/Str] r/Empty) ["a" "b" "c"])
-      (not-ok! (r/refined [s/Any] r/Empty) [["a"] ["b" "c"] ["c" "d"]])
-      (not-ok! (r/refined s/Str r/Empty) nil)
-      (not-ok! (r/refined s/Str r/Empty) '()))
+    (not-ok! (r/refined s/Str r/UpperCased) "https://attendify.com"))
 
-    (t/deftest refined-with-not-empty-predicate
-      (ok! (r/refined s/Str r/NonEmpty) "doom")
-      (ok! (r/refined [s/Num] r/NonEmpty) [1 2 3])
-      (ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {:boom "Doom"})
-      (ok! (r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty) ["a" "b" "c"])
-      (ok! (r/refined [(r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty)] r/NonEmpty)
-           [["a"] ["b" "c"] ["c" "d"]])
+  (t/deftest refined-with-empty-predicate
+    (ok! (r/refined [s/Num] r/Empty) [])
+    (ok! (r/refined [s/Num] r/Empty) '())
+    (ok! (r/refined s/Str r/Empty) "")
+    (ok! (r/refined {s/Keyword s/Str} r/Empty) {})
 
-      (not-ok! (r/refined [s/Num] r/NonEmpty) [])
-      (not-ok! (r/refined [s/Num] r/NonEmpty) '())
-      (not-ok! (r/refined s/Str r/NonEmpty) nil)
-      (not-ok! (r/refined s/Str r/NonEmpty) '())
-      (not-ok! (r/refined s/Str r/NonEmpty) "")
-      (not-ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {}))))
+    (not-ok! (r/refined s/Str r/Empty) "doom")
+    (not-ok! (r/refined [s/Num] r/Empty) [1 2 3])
+    (not-ok! (r/refined {s/Keyword s/Str} r/Empty) {:boom "Doom"})
+    (not-ok! (r/refined [s/Str] r/Empty) ["a" "b" "c"])
+    (not-ok! (r/refined [s/Any] r/Empty) [["a"] ["b" "c"] ["c" "d"]])
+    (not-ok! (r/refined s/Str r/Empty) nil)
+    (not-ok! (r/refined s/Str r/Empty) '()))
+
+  (t/deftest refined-with-not-empty-predicate
+    (ok! (r/refined s/Str r/NonEmpty) "doom")
+    (ok! (r/refined [s/Num] r/NonEmpty) [1 2 3])
+    (ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {:boom "Doom"})
+    (ok! (r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty) ["a" "b" "c"])
+    (ok! (r/refined [(r/refined [(r/refined s/Str r/NonEmpty)] r/NonEmpty)] r/NonEmpty)
+         [["a"] ["b" "c"] ["c" "d"]])
+
+    (not-ok! (r/refined [s/Num] r/NonEmpty) [])
+    (not-ok! (r/refined [s/Num] r/NonEmpty) '())
+    (not-ok! (r/refined s/Str r/NonEmpty) nil)
+    (not-ok! (r/refined s/Str r/NonEmpty) '())
+    (not-ok! (r/refined s/Str r/NonEmpty) "")
+    (not-ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {}))
+
+  (t/deftest refined-with-bounded-size-predicate
+    (let [min-size    1
+          max-size    3
+          BoundedSize (r/BoundedSize min-size max-size)]
+      (doseq [size (range min-size (inc max-size))]
+        (ok! (r/refined [s/Num] BoundedSize) (range size))
+        (ok! (r/refined #{s/Num} BoundedSize) (set (range size)))
+        (ok! (r/refined {s/Num s/Num} BoundedSize) (numeric-map size)))
+
+      (not-ok! (r/refined [s/Num] BoundedSize) [])
+      (not-ok! (r/refined #{s/Num} BoundedSize) #{})
+      (not-ok! (r/refined {s/Num s/Num} BoundedSize) {})
+      (not-ok! (r/refined [s/Num] BoundedSize) (range (inc max-size)))
+      (not-ok! (r/refined #{s/Num} BoundedSize) (-> max-size inc range set))
+      (not-ok! (r/refined {s/Num s/Num} BoundedSize) (numeric-map (inc max-size))))))
 
 (t/deftest validate-empty-values
   (ok! r/EmptyList [])
@@ -284,6 +306,44 @@
   (not-ok! (r/BoundedSizeStr 1 10) "abcdeabcde     ")
   (ok! (r/BoundedSizeStr 1 10 true) "abcdeabcde     ")
   (not-ok! (r/BoundedSizeStr 1 10 true) " "))
+
+(t/deftest validate-bounded-collections
+  (let [min-size    1
+        max-size    3]
+    (doseq [size (range min-size (inc max-size))]
+      (ok! (r/BoundedListOf s/Num min-size max-size) (range size))
+      (ok! (r/BoundedSetOf s/Num min-size max-size) (set (range size)))
+      (ok! (r/BoundedMapOf s/Num s/Num min-size max-size) (numeric-map size)))
+
+    (not-ok! (r/BoundedListOf s/Num min-size max-size) [])
+    (not-ok! (r/BoundedSetOf s/Num min-size max-size) #{})
+    (not-ok! (r/BoundedMapOf s/Num s/Num min-size max-size) {})
+    (not-ok! (r/BoundedListOf s/Num min-size max-size) (range (inc max-size)))
+    (not-ok! (r/BoundedSetOf s/Num min-size max-size) (-> max-size inc range set))
+    (not-ok! (r/BoundedMapOf s/Num s/Num min-size max-size) (numeric-map (inc max-size)))
+
+    (ok! (r/BoundedListOf s/Num max-size) (range max-size))
+    (ok! (r/BoundedSetOf s/Num max-size)
+         (set (range max-size)))
+    (ok! (r/BoundedMapOf s/Num s/Num max-size)
+         (->> max-size
+              range
+              (map-indexed vector)
+              (into {})))
+
+    (doseq [size (conj (range max-size) (inc max-size))]
+      (not-ok! (r/BoundedListOf s/Num max-size) (range size))
+      (not-ok! (r/BoundedSetOf s/Num max-size) (-> size range set))
+      (not-ok! (r/BoundedMapOf s/Num s/Num max-size) (numeric-map size)))
+
+    (ok! (r/SingleValueListOf s/Num) [1])
+    (ok! (r/SingleValueSetOf s/Num) #{1})
+    (ok! (r/SingleValueMapOf s/Num s/Num) {1 1})
+
+    (doseq [size [0 2]]
+      (not-ok! (r/BoundedListOf s/Num max-size) (range size))
+      (not-ok! (r/BoundedSetOf s/Num max-size) (-> size range set))
+      (not-ok! (r/BoundedMapOf s/Num s/Num max-size) (numeric-map size)))))
 
 (t/deftest validate-digit-char
   (doseq [i (range 10)]
