@@ -248,6 +248,8 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * Clean and concise way to represent transformation invariants (right now you can only define your output
   type as a function from input value, doing manual manipulations, which might be kinda tricky and not very
   obvious for the reader of your code)
+  
+* Support generative testing (probably bridge to the existing tools)
 
 ## Appendix A: Builtin Predicates & Types
 
