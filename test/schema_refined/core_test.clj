@@ -295,7 +295,34 @@
 
     (not-ok! (r/refined [s/Int] (r/Exists odd?)) (range 0 10 2))
     (not-ok! (r/refined [s/Int] (r/Exists r/PositiveInt)) (range -10 -5))
-    (not-ok! (r/refined [s/Str] (r/Exists r/Empty)) (repeat 10 "a"))))
+    (not-ok! (r/refined [s/Str] (r/Exists r/Empty)) (repeat 10 "a")))
+
+  (t/deftest refined-with-first-predicate
+    (ok! (r/refined [s/Int] (r/First odd?)) (conj (range 0 10 2) 1))
+    (ok! (r/refined [s/Int] (r/First r/PositiveInt)) (conj (range -10 -5) 1))
+    (ok! (r/refined [s/Str] (r/First r/Empty)) (conj (repeat 10 "a") ""))
+
+    (not-ok! (r/refined [s/Int] (r/First odd?)) (into (range 0 10 2) [1 2]))
+    (not-ok! (r/refined [s/Int] (r/First r/PositiveInt)) (into (range -10 -5) [1 -2]))
+    (not-ok! (r/refined [s/Str] (r/First r/Empty)) (into (repeat 10 "a") ["" "a"])))
+
+  (t/deftest refined-with-second-predicate
+    (ok! (r/refined [s/Int] (r/Second odd?)) (into (range 0 10 2) [1 2]))
+    (ok! (r/refined [s/Int] (r/Second r/PositiveInt)) (into (range -10 -5) [1 -2]))
+    (ok! (r/refined [s/Str] (r/Second r/Empty)) (into (repeat 10 "a") ["" "a"]))
+
+    (not-ok! (r/refined [s/Int] (r/Second odd?)) (conj (range 0 10 2) 1))
+    (not-ok! (r/refined [s/Int] (r/Second r/PositiveInt)) (conj (range -10 -5) 1))
+    (not-ok! (r/refined [s/Str] (r/Second r/Empty)) (conj (repeat 10 "a") "")))
+
+  (t/deftest refined-with-index-predicate
+    (ok! (r/refined [s/Int] (r/Index 2 odd?)) (into (range 0 10 2) [1 2 4]))
+    (ok! (r/refined [s/Int] (r/Index 2 r/PositiveInt)) (into (range -10 -5) [1 -2 -3]))
+    (ok! (r/refined [s/Str] (r/Index 2 r/Empty)) (into (repeat 10 "a") ["" "a" "a"]))
+
+    (not-ok! (r/refined [s/Int] (r/Index 2 odd?)) (conj (range 0 10 2) 1))
+    (not-ok! (r/refined [s/Int] (r/Index 2 r/PositiveInt)) (conj (range -10 -5) 1))
+    (not-ok! (r/refined [s/Str] (r/Index 2 r/Empty)) (conj (repeat 10 "a") ""))))
 
 (t/deftest validate-empty-values
   (ok! r/EmptyList [])
