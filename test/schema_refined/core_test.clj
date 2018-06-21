@@ -322,7 +322,34 @@
 
     (not-ok! (r/refined [s/Int] (r/Index 2 odd?)) (conj (range 0 10 2) 1))
     (not-ok! (r/refined [s/Int] (r/Index 2 r/PositiveInt)) (conj (range -10 -5) 1))
-    (not-ok! (r/refined [s/Str] (r/Index 2 r/Empty)) (conj (repeat 10 "a") ""))))
+    (not-ok! (r/refined [s/Str] (r/Index 2 r/Empty)) (conj (repeat 10 "a") "")))
+
+  (t/deftest refined-with-rest-predicate
+    (ok! (r/refined [s/Int] (r/Rest even?)) (conj (range 0 10 2) 1))
+    (ok! (r/refined [s/Int] (r/Rest r/NegativeInt)) (conj (range -10 -5) 1))
+    (ok! (r/refined [s/Str] (r/Rest r/NonEmpty)) (conj (repeat 10 "a") ""))
+
+    (not-ok! (r/refined [s/Int] (r/Rest even?)) (into (range 0 10 2) [1 2]))
+    (not-ok! (r/refined [s/Int] (r/Rest r/NegativeInt)) (into (range -10 -5) [1 -2]))
+    (not-ok! (r/refined [s/Str] (r/Rest r/NonEmpty)) (into (repeat 10 "a") ["" "a"])))
+
+  (t/deftest refined-with-last-predicate
+    (ok! (r/refined [s/Int] (r/Last odd?)) (conj (vec (range 0 10 2)) 1))
+    (ok! (r/refined [s/Int] (r/Last r/PositiveInt)) (conj (vec (range -10 -5)) 1))
+    (ok! (r/refined [s/Str] (r/Last r/Empty)) (conj (vec (repeat 10 "a")) ""))
+
+    (not-ok! (r/refined [s/Int] (r/Last odd?)) (into (range 0 10 2) [1 2]))
+    (not-ok! (r/refined [s/Int] (r/Last r/PositiveInt)) (into (range -10 -5) [1 -2]))
+    (not-ok! (r/refined [s/Str] (r/Last r/Empty)) (into (repeat 10 "a") ["" "a"])))
+
+  (t/deftest refined-with-butlast-predicate
+    (ok! (r/refined [s/Int] (r/Butlast even?)) (conj (vec (range 0 10 2)) 1))
+    (ok! (r/refined [s/Int] (r/Butlast r/NegativeInt)) (conj (vec (range -10 -5)) 1))
+    (ok! (r/refined [s/Str] (r/Butlast r/NonEmpty)) (conj (vec (repeat 10 "a")) ""))
+
+    (not-ok! (r/refined [s/Int] (r/Butlast even?)) (into (range 0 10 2) [1 2]))
+    (not-ok! (r/refined [s/Int] (r/Butlast r/NegativeInt)) (into (range -10 -5) [1 -2]))
+    (not-ok! (r/refined [s/Str] (r/Butlast r/NonEmpty)) (into (repeat 10 "a") ["" "a"]))))
 
 (t/deftest validate-empty-values
   (ok! r/EmptyList [])
