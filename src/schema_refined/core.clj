@@ -623,7 +623,7 @@
 (defrecord ExistsPredicate [pred]
   Predicate
   (predicate-apply [_ value]
-    (not (nil? (some? (partial predicate-apply pred) value))))
+    (not (nil? (some (partial predicate-apply pred) value))))
   PredicateShow
   (predicate-show [_ sym]
     (let [sym' (str sym "'")]
