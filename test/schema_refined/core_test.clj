@@ -349,7 +349,58 @@
 
     (not-ok! (r/refined [s/Int] (r/Butlast even?)) (into (range 0 10 2) [1 2]))
     (not-ok! (r/refined [s/Int] (r/Butlast r/NegativeInt)) (into (range -10 -5) [1 -2]))
-    (not-ok! (r/refined [s/Str] (r/Butlast r/NonEmpty)) (into (repeat 10 "a") ["" "a"]))))
+    (not-ok! (r/refined [s/Str] (r/Butlast r/NonEmpty)) (into (repeat 10 "a") ["" "a"])))
+
+  (t/deftest refined-with-pairwise-predicate
+    (let [sum-equals-3? (fn [[a b]] (= 3 (+ a b)))]
+      (ok! (r/refined [s/Int] (r/Pairwise sum-equals-3?)) [1 2 1])
+
+      (not-ok! (r/refined [s/Int] (r/Pairwise sum-equals-3?)) [1 1])))
+
+  (t/deftest refined-with-ascending-on-predicate
+    (ok! (r/refined [{:price s/Int}] (r/AscendingOn :price))
+         (map #(-> {:price %}) (range 10)))
+
+    (not-ok! (r/refined [{:price s/Int}] (r/AscendingOn :price))
+             (conj (map #(-> {:price %}) (range 10)) {:price 5})))
+
+  (t/deftest refined-with-descending-on-predicate
+    (ok! (r/refined [{:price s/Int}] (r/DescendingOn :price))
+         (map #(-> {:price %}) (range 10 0 -1)))
+
+    (not-ok! (r/refined [{:price s/Int}] (r/DescendingOn :price))
+             (conj (map #(-> {:price %}) (range 10 0 -1)) {:price 5})))
+
+  (let [SponsorshipLevel (s/enum "bronze" "silver" "gold")
+        better-sponsor?  (fn [{a-level :level} {b-level :level}]
+                           (cond
+                             (= a-level b-level)  0
+                             (= a-level "bronze") -1
+                             (= b-level "gold")   -1
+                             :else 1))]
+    (t/deftest refined-with-ascending-by-predicate
+      (ok! (r/refined [{:level SponsorshipLevel}] (r/AscendingBy better-sponsor?))
+           [{:level "bronze"} {:level "silver"} {:level "silver"} {:level "gold"}])
+
+      (not-ok! (r/refined [{:level SponsorshipLevel}] (r/AscendingBy better-sponsor?))
+               [{:level "bronze"} {:level "gold"} {:level "silver"}]))
+
+    (t/deftest refined-with-descending-by-predicate
+      (ok! (r/refined [{:level SponsorshipLevel}] (r/DescendingBy better-sponsor?))
+           [{:level "gold"} {:level "silver"} {:level "silver"} {:level "bronze"}])
+
+      (not-ok! (r/refined [{:level SponsorshipLevel}] (r/DescendingBy better-sponsor?))
+               [{:level "gold"} {:level "bronze"} {:level "silver"}])))
+
+  (t/deftest refined-with-ascending-predicate
+    (ok! (r/refined [s/Int] r/Ascending) (range 10))
+
+    (not-ok! (r/refined [s/Int] r/Ascending) (conj (range 10) 5)))
+
+  (t/deftest refined-with-descending-predicate
+    (ok! (r/refined [s/Int] r/Descending) (range 10 0 -1))
+
+    (not-ok! (r/refined [{:price s/Int}] r/Descending) (conj (range 10 0 -1) 5))))
 
 (t/deftest validate-empty-values
   (ok! r/EmptyList [])
