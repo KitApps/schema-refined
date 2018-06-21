@@ -47,9 +47,9 @@ com.attendify/schema-refined {:mvn/version "0.3.0-alpha4"}
 * [Refined in Haskell](https://github.com/nikita-volkov/refined)
 * [Refined in Scala](https://github.com/fthomas/refined)
 
-## Usage 
+## Usage
 
-Get ready! 
+Get ready!
 
 ```clojure
 (require '[schema-refined.core :as r])
@@ -204,7 +204,7 @@ You can easily extend the **type** now:
 and reduce:
 
 ```clojure
-(dissoc PaidTicket :status) 
+(dissoc PaidTicket :status)
 
 ;; #<StructMap {...}
 ;;   Guarded with
@@ -238,7 +238,7 @@ To find more examples and use cases, please see doc strings (whenever applicable
 
 * Separate "serialization" presentation (basic Scalar types) fro "business" logic and rules with
   a flexibility to send pointers to all predicates over the wire
-  
+
 * Maybe we need another way to deal with generics to provide flexibility with higher kinded types
   (using function to build a new type hides some information about the underlying representation and
   it's impossible to extend w/o reimplemention)
@@ -248,7 +248,7 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * Clean and concise way to represent transformation invariants (right now you can only define your output
   type as a function from input value, doing manual manipulations, which might be kinda tricky and not very
   obvious for the reader of your code)
-  
+
 * Support generative testing (probably bridge to the existing tools)
 
 ## Appendix A: Builtin Predicates & Types
@@ -285,6 +285,7 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `ClosedIntervalOf`
 * `OpenClosedIntervalOf`
 * `ClosedOpenIntervalOf`
+* `EpsilonOf`
 
 ### Numerical Predicates
 
