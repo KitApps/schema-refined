@@ -705,6 +705,20 @@
   (not-ok! (r/DistinctListOf s/Num) (repeat 7 1))
   (not-ok! (r/NonEmptyDistinctListOf s/Num) []))
 
+(t/deftest validate-at-least-map
+  (ok! (r/AtLeastMap {:foo s/Int}) {:foo 1})
+  (ok! (r/AtLeastMap {:foo s/Int}) {:foo 1 :bar 2})
+
+  (not-ok! (r/AtLeastMap {:foo s/Int}) {})
+  (not-ok! (r/AtLeastMap {:foo s/Int}) {:bar 2}))
+
+(t/deftest validate-non-strict-map
+  (ok! (r/NonStrictMap {:foo s/Int}) {:foo 1})
+  (ok! (r/NonStrictMap {:foo s/Int}) {})
+
+  (not-ok! (r/NonStrictMap {:foo s/Int}) {:foo 1 :bar 2})
+  (not-ok! (r/NonStrictMap {:foo s/Int}) {:bar 2}))
+
 (def -Ticket (r/Struct :id r/NonEmptyStr
                         :rev r/NonEmptyStr
                         :price (s/maybe s/Num)
