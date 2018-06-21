@@ -277,7 +277,25 @@
     (not-ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo))
              (->> 1
                   (repeat 7)
-                  (map #(-> {:foo %}))) )))
+                  (map #(-> {:foo %})))))
+
+  (t/deftest refined-with-forall-predicate
+    (ok! (r/refined [s/Int] (r/Forall odd?)) (range 1 10 2))
+    (ok! (r/refined [s/Int] (r/Forall r/PositiveInt)) (range 1 10))
+    (ok! (r/refined [s/Str] (r/Forall r/Empty)) (repeat 10 ""))
+
+    (not-ok! (r/refined [s/Int] (r/Forall odd?)) (range 1 10))
+    (not-ok! (r/refined [s/Int] (r/Forall r/PositiveInt)) (conj (range 1 10) -1))
+    (not-ok! (r/refined [s/Str] (r/Forall r/Empty)) (into (repeat 10 "") ["a" ""])))
+
+  (t/deftest refined-with-exists-predicate
+    (ok! (r/refined [s/Int] (r/Exists odd?)) (into (range 0 10 2) [2 7 5]))
+    (ok! (r/refined [s/Int] (r/Exists r/PositiveInt)) (into (range -10 -5) [-4 1 0]))
+    (ok! (r/refined [s/Str] (r/Exists r/Empty)) (into (repeat 10 "a") ["a" "" "a"]))
+
+    (not-ok! (r/refined [s/Int] (r/Exists odd?)) (range 0 10 2))
+    (not-ok! (r/refined [s/Int] (r/Exists r/PositiveInt)) (range -10 -5))
+    (not-ok! (r/refined [s/Str] (r/Exists r/Empty)) (repeat 10 "a"))))
 
 (t/deftest validate-empty-values
   (ok! r/EmptyList [])
@@ -581,15 +599,6 @@
 
   (not-ok! (r/DistinctListOf s/Num) (repeat 7 1))
   (not-ok! (r/NonEmptyDistinctListOf s/Num) []))
-
-(t/deftest refined-with-distinct-by-predicate
-  (ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo)) (map #(-> {:foo %}) (range 7)))
-  (ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo)) [])
-
-  (not-ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo))
-           (->> 1
-                (repeat 7)
-                (map #(-> {:foo %}))) ))
 
 (def -Ticket (r/Struct :id r/NonEmptyStr
                         :rev r/NonEmptyStr
