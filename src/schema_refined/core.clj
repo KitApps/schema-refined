@@ -3,8 +3,7 @@
             [schema.spec.core :as schema-spec]
             [schema.spec.variant :as schema-variant]
             [schema.utils :as schema-utils]
-            [clojure.string :as cstr]
-            [potemkin.collections :refer [def-map-type]])
+            [clojure.string :as cstr])
   (:refer-clojure :exclude [boolean?])
   (:import (java.net URI URISyntaxException URL MalformedURLException)))
 
@@ -851,6 +850,140 @@
 ;; guarded structs
 ;;
 
+;; based on potemkin's def-map-type
+(defprotocol RefinedMapType
+  (empty* [m])
+  (get* [m k default])
+  (assoc* [m k v])
+  (dissoc* [m k])
+  (keys* [m])
+  (with-meta* [o mta])
+  (meta* [o]))
+
+(defmacro -def-map-type
+  {:style/indent [2 :form :form [1]]}
+  [name params & body]
+  `(deftype ~name ~params
+     schema_refined.core.RefinedMapType
+     ~@body
+
+     clojure.lang.MapEquivalence
+
+     clojure.lang.IPersistentCollection
+     (equiv [this# x#]
+       (and (or (instance? java.util.Map x#) (map? x#))
+            (= x# (into {} this#))))
+     (cons [this# o#]
+       (cond
+         (map? o#)
+         (reduce #(apply assoc %1 %2) this# o#)
+
+         (instance? java.util.Map o#)
+         (reduce #(apply assoc %1 %2) this# (into {} o#))
+
+         :else
+         (if-let [[k# v#] (seq o#)]
+           (assoc this# k# v#)
+           this#)))
+
+     clojure.lang.IObj
+     (withMeta [this# m#]
+       (schema-refined.core/with-meta* this# m#))
+     (meta [this#]
+       (schema-refined.core/meta* this#))
+
+     clojure.lang.Counted
+     (count [this#]
+       (count (schema-refined.core/keys* this#)))
+
+     clojure.lang.Seqable
+     (seq [this#]
+       (seq
+        (map
+         #(.entryAt this# %)
+         (schema-refined.core/keys* this#))))
+
+     clojure.core.protocols.CollReduce
+     (coll-reduce [this# f#]
+       (reduce f# (seq this#)))
+     (coll-reduce [this# f# v#]
+       (reduce f# v# (seq this#)))
+
+     clojure.lang.IHashEq
+     (hasheq [this#]
+       (hash-unordered-coll (or (seq this#) ())))
+
+     Object
+     (hashCode [this#]
+       (reduce
+        (fn [acc# [k# v#]]
+          (unchecked-add acc# (bit-xor (clojure.lang.Util/hash k#)
+                                       (clojure.lang.Util/hash v#))))
+        0
+        (seq this#)))
+     (equals [this# x#]
+       (or (identical? this# x#)
+           (and
+            (or (instance? java.util.Map x#) (map? x#))
+            (= x# (into {} this#)))))
+     (toString [this#]
+       (str (into {} this#)))
+
+     clojure.lang.ILookup
+     (valAt [this# k#]
+       (.valAt this# k# nil))
+     (valAt [this# k# default#]
+       (schema-refined.core/get* this# k# default#))
+
+     clojure.lang.Associative
+     (containsKey [this# k#]
+       (contains? (.keySet this#) k#))
+     (entryAt [this# k#]
+       (when (contains? (.keySet this#) k#)
+         (clojure.lang.MapEntry. k# (get this# k#))))
+     (assoc [this# k# v#]
+       (schema-refined.core/assoc* this# k# v#))
+     (empty [this#]
+       (schema-refined.core/empty* this#))
+
+     java.util.Map
+     (get [this# k#]
+       (.valAt this# k#))
+     (isEmpty [this#]
+       (empty? this#))
+     (size [this#]
+       (count this#))
+     (keySet [this#]
+       (set (schema-refined.core/keys* this#)))
+     (put [_ _ _]
+       (throw (UnsupportedOperationException.)))
+     (putAll [_ _]
+       (throw (UnsupportedOperationException.)))
+     (clear [_]
+       (throw (UnsupportedOperationException.)))
+     (remove [_ _]
+       (throw (UnsupportedOperationException.)))
+     (values [this#]
+       (->> this# seq (map second)))
+     (entrySet [this#]
+       (->> this# seq set))
+
+     java.util.Iterator
+     (iterator [this#]
+       (clojure.lang.SeqIterator. this#))
+
+     clojure.lang.IPersistentMap
+     (assocEx [this# k# v#]
+       (if (contains? this# k#)
+         (throw (Exception. "Key or value already present"))
+         (assoc this# k# v#)))
+     (without [this# k#]
+       (schema-refined.core/dissoc* this# k#))
+
+     clojure.lang.IFn
+     (invoke [this# k#] (get this# k#))
+     (invoke [this# k# not-found#] (get this# k# not-found#))))
+
 (defprotocol Guardable
   (append-guard [this guard])
   (get-guards [this]))
@@ -858,13 +991,14 @@
 (defn cleanup-guards [guards k]
   (remove #(contains? (:slice-set %) k) guards))
 
-(def-map-type StructMap [data guards mta]
-  (meta [_] mta)
-  (with-meta [_ m] (StructMap. data guards m))
-  (keys [_] (keys data))
-  (assoc [_ k v] (StructMap. (assoc data k v) guards mta))
-  (dissoc [_ k] (StructMap. (dissoc data k) (cleanup-guards guards k) mta))
-  (get [_ k default-value] (get data k default-value)))
+(-def-map-type StructMap [data guards mta]
+  (empty* [_] (StructMap. {} [] {}))
+  (get* [_ k default-value] (get data k default-value))
+  (assoc* [_ k v] (StructMap. (assoc data k v) guards mta))
+  (dissoc* [_ k] (StructMap. (dissoc data k) (cleanup-guards guards k) mta))
+  (keys* [_] (keys data))
+  (meta* [_] mta)
+  (with-meta* [_ m] (StructMap. data guards m)))
 
 (extend-type StructMap
   Guardable
@@ -957,24 +1091,16 @@
    schema
    guards))
 
-(def-map-type StructDispatchMap [keys-slice
-                                 downstream-slice
-                                 dispatch-fn
-                                 options
-                                 guards
-                                 updates
-                                 mta]
-  (meta [_] mta)
-  (with-meta [_ m] (StructDispatchMap.
-                    keys-slice
-                    downstream-slice
-                    dispatch-fn
-                    options
-                    guards
-                    updates
-                    m))
-  (keys [_] (keys (apply-struct-updates-to updates {})))
-  (assoc [_ k v] (StructDispatchMap.
+(-def-map-type StructDispatchMap [keys-slice
+                                  downstream-slice
+                                  dispatch-fn
+                                  options
+                                  guards
+                                  updates
+                                  mta]
+  (empty* [_] (StructDispatchMap. [] [] (constantly ::empty) [[::empty {}]] [] [] nil))
+  (get* [_ k default-value] (get (apply-struct-updates-to updates {}) k default-value))
+  (assoc* [_ k v] (StructDispatchMap.
                   keys-slice
                   downstream-slice
                   dispatch-fn
@@ -982,31 +1108,40 @@
                   guards
                   (conj updates [:assoc k v])
                   mta))
-  (dissoc [_ k]
-          (cond
-            (contains? keys-slice k)
-            (throw (IllegalArgumentException.
-                    (str "You are trying to dissoc key '"
-                         k
-                         "' that is used in dispatch function. "
-                         "Even tho' it's doable theoratically, we are kindly encourage you "
-                         "avoid such kind of manipulations. It's gonna be a mess.")))
+  (dissoc* [_ k]
+    (cond
+      (contains? keys-slice k)
+      (throw (IllegalArgumentException.
+              (str "You are trying to dissoc key '"
+                   k
+                   "' that is used in dispatch function. "
+                   "Even tho' it's doable theoratically, we are kindly encourage you "
+                   "avoid such kind of manipulations. It's gonna be a mess.")))
 
-            (contains? downstream-slice k)
-            (throw (IllegalArgumentException.
-                    (str "Meh. Would not work. One of the options provided actually "
-                         "relies on the key '" k "'. Sorry, but I cannot take a risk here.")))
+      (contains? downstream-slice k)
+      (throw (IllegalArgumentException.
+              (str "Meh. Would not work. One of the options provided actually "
+                   "relies on the key '" k "'. Sorry, but I cannot take a risk here.")))
 
-            :else
-            (StructDispatchMap.
-             keys-slice
-             downstream-slice
-             dispatch-fn
-             options
-             guards
-             (conj updates [:dissoc k])
-             mta)))
-  (get [_ k default-value] (get (apply-struct-updates-to updates {}) k default-value)))
+      :else
+      (StructDispatchMap.
+       keys-slice
+       downstream-slice
+       dispatch-fn
+       options
+       guards
+       (conj updates [:dissoc k])
+       mta)))
+  (keys* [_] (keys (apply-struct-updates-to updates {})))
+  (meta* [_] mta)
+  (with-meta* [_ m] (StructDispatchMap.
+                    keys-slice
+                    downstream-slice
+                    dispatch-fn
+                    options
+                    guards
+                    updates
+                    m)))
 
 (defmethod print-method StructDispatchMap
   [^StructDispatchMap struct ^java.io.Writer writer]
