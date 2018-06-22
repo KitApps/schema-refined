@@ -273,19 +273,6 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `Descending`
 * `DescendingBy`
 * `DescendingOn`
-* `OpenInterval`
-* `ClosedInterval`
-* `OpenClosedInterval`
-* `ClosedOpenInterval`
-* `Epsilon`
-
-### Ordering Types
-
-* `OpenIntervalOf`
-* `ClosedIntervalOf`
-* `OpenClosedIntervalOf`
-* `ClosedOpenIntervalOf`
-* `EpsilonOf`
 
 ### Numerical Predicates
 
@@ -294,6 +281,11 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `Modulo`
 * `DivisibleBy`
 * `NonDivisibleBy`
+* `OpenInterval`
+* `ClosedInterval`
+* `OpenClosedInterval`
+* `ClosedOpenInterval`
+* `Epsilon`
 
 ### Numerical Types
 
@@ -309,6 +301,10 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `NegativeDouble`
 * `NonNegativeDouble`
 * `NonPositiveDouble`
+* `OpenIntervalOf`
+* `ClosedIntervalOf`
+* `OpenClosedIntervalOf`
+* `ClosedOpenIntervalOf`
 * `EpsilonOf`
 
 ### String Predicates
@@ -371,8 +367,8 @@ To find more examples and use cases, please see doc strings (whenever applicable
 * `SingleValueListOf`
 * `SingleValueSetOf`
 * `SingleValueMapOf`
-* `UniqueItemsListOf`
-* `NonEmptyUniqueItemsListOf`
+* `DistinctListOf`
+* `NonEmptyDistinctListOf`
 
 ## Contribute
 
