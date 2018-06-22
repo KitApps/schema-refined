@@ -385,3 +385,5 @@ or simply...
 ## License
 
 `schema-refined` is licensed under the MIT license, available at [MIT](http://opensource.org/licenses/MIT) and also in the LICENSE file.
+
+Implementation of `-def-map-type` is based on [Potemkin](https://github.com/ztellman/potemkin) (Copyright © 2013 Zachary Tellman)
