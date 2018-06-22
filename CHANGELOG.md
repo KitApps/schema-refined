@@ -9,6 +9,7 @@
   function to the list of arguments
 * Fixed `Exists` predicate: it failed with runtime exception on every check in
   previous release due to the typo
+* Removed Potemkin dependency
 
 ## 0.3.0-alpha4
 
