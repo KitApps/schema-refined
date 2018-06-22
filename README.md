@@ -10,9 +10,9 @@ Type refinement is all about making the types (schemas) more precise to keep you
 
 * product types with `Struct` that you can accrete and reduce "on fly" (think, as maps on steroids)
 
-* sum types with explicit dispatching that you can use not loosing flexibility (think, as `schema/conditional` on steroids)
+* sum types with explicit dispatching that you can use not loosing flexibility (think, as `schema.core/conditional` on steroids)
 
-* `refined` to glue all the above together (think, as `schema/constrained` on steroids)
+* `refined` to glue all the above together (think, as `schema.core/constrained` on steroids)
 
 And more!
 
@@ -53,7 +53,7 @@ Get ready!
 
 ```clojure
 (require '[schema-refined.core :as r])
-(require '[schema.core :as schema])
+(require '[schema.core :as s])
 ```
 
 ### Refined
@@ -63,7 +63,7 @@ two params: a **type** (which should be a valid schema) and a **predicate** (whi
 `schema-refiend.core/Predicate` protocol or be a function from value of given **type** to boolean) and
 returns a schema that checks both that "basic" schema (given as a **type**) is satisfied and the predicates
 returns `true` for this specific value. You can also use another schema as a predicate. There are a lot of
-built-in **predicates**, please check the listing below. **Predicates** are very composable, you can create
+built-in **predicates**, please check the listing below. **Predicates** are composable, you can create
 a new one from existing using logical rules `And`, `Or`, `Not` and `On` (checks predicate after applying to
 the value given function). There're also a few high-level predicaetes to deal with collections, like `Forall`,
 `First`, `Last` etc.
@@ -92,7 +92,7 @@ Motivational example.
             {:lat 40.0086 :lng 28.9802}])
 
 ;; Route now is a valid schema, so you can use it as any other schema
-(schema/check Route input)
+(s/check Route input)
 ```
 
 Even more motivational example.
@@ -144,14 +144,14 @@ to decide on the branch (option).
    :prevPageCursor (s/eq nil)})
 
 (defn NonEmptyScrollableListOf [dt]
-  (dispatch-on (juxt :hasNext :hasPrev)
+  (r/dispatch-on (juxt :hasNext :hasPrev)
     [false false] (SinglePageOf dt)
     [true  false] (FirstPageOf dt)
     [false true]  (LastPageOf dt)
     [true  true]  (ScrollableListSliceOf dt)))
 
 (defn ScrollableListOf [dt]
-  (dispatch-on :totalCount
+  (r/dispatch-on :totalCount
     0 EmptyScrollableList
     :else (NonEmptyScrollableListOf dt)))
 ```
@@ -163,15 +163,15 @@ refined with `schema-refined.core/guard`. Guarded struct still can be changed "o
 adding a new **field** to the **record**) and `dissoc` (think: removing specific **field** from the **record**).
 
 ```clojure
-(def -FreeTicket (Struct
-                   :id Id
-                   :type (s/eq "free")
-                   :title NonEmptyStr
-                   :quantity (OpenIntervalOf 1 1e4)
-                   :description (s/maybe NonEmptyStr)
-                   :status (s/enum :open :closed)))
+(def -FreeTicket (r/Struct
+                  :id r/NonEmptyStr
+                  :type (s/eq "free")
+                  :title r/NonEmptyStr
+                  :quantity (r/OpenIntervalOf int 1 1e4)
+                  :description (s/maybe r/NonEmptyStr)
+                  :status (s/enum :open :closed)))
 
-(def FreeTicket (guard -FreeTicket '(:quantity :status) enough-sits-when-open))
+(def FreeTicket (r/guard -FreeTicket '(:quantity :status) enough-sits-when-open))
 
 ;; #<StructMap {:description (constrained Str should-not-be-blank)
 ;;              :type (eq "free")
@@ -188,12 +188,12 @@ You can easily extend the **type** now:
 ```clojure
 (def -PaidTicket (assoc FreeTicket
                         :type (s/eq "paid")
-                        :priceInCents PositiveInt
+                        :priceInCents r/PositiveInt
                         :taxes [Tax]
                         :fees (s/enum :absorb :pass)))
 
 (def PaidTicket
-  (guard -PaidTicket '(:taxes :fees) pass-tax-included))
+  (r/guard -PaidTicket '(:taxes :fees) pass-tax-included))
 
 ;; #<StructMap {...}
 ;;   Guarded with
@@ -214,10 +214,10 @@ and reduce:
 ```
 
 `schema-refined.core/StructDispatch` provides you the same functionality as `schema-refined.core/dispatch-on`,
-but the resulting **type** behaves list a one created with `schema-refined.core/Struct`.
+but the resulting **type** behaves like a one created with `schema-refined.core/Struct`.
 
 ```clojure
-(def Ticket (StructDispatch :type
+(def Ticket (r/StructDispatch :type
               "free" FreeTicket
               "paid" PaidTicket))
 
