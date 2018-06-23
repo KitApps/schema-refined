@@ -295,7 +295,7 @@
     (< n value))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s < %s" n sym)))
+    (format "%s > %s" sym n)))
 
 (defmethod print-method GreaterPredicate
   [p writer]
@@ -312,7 +312,7 @@
     (<= n value))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s ≤ %s" n sym)))
+    (format "%s ≥ %s" sym n)))
 
 (defmethod print-method GreaterOrEqualPredicate
   [p writer]
