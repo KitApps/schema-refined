@@ -823,3 +823,16 @@
     (ok! CounterWithElse {:num 1})
     (ok! CounterWithElse {:num 2})
     (ok! CounterWithElse {:num 100})))
+
+;;
+;; check tough printing cases
+;;
+
+(defn test-print! [schema pattern]
+  (let [dv (with-out-str (pr schema))]
+    (t/is (.contains dv pattern) pattern)))
+
+(t/deftest print-vector-values
+  (test-print! (r/refined [double] (r/Greater 10)) "[double]")
+  (test-print! (r/refined [s/Str] r/NonEmpty) "[string]")
+  (test-print! (r/refined #{int} (r/On count (r/Less 10))) "#{int}"))

@@ -43,6 +43,26 @@
 (defn predicate? [p]
   (satisfies? Predicate p))
 
+(defn schema->str [schema]
+  {:pre [(schema? schema)]}
+  (cond
+    (identical? java.lang.String schema)
+    "string"
+
+    (and (vector? schema)
+         (= 1 (count schema)))
+    (format "[%s]" (schema->str (first schema)))
+
+    (and (set? schema)
+         (= 1 (count schema)))
+    (format "#{%s}" (schema->str (first schema)))
+
+    (fn? schema)
+    (schema-utils/fn-name schema)
+
+    :else
+    (with-out-str (pr schema))))
+
 (defn predicate->str
   ([pred] (predicate->str pred "v" false))
   ([pred sym bounded?]
@@ -75,7 +95,7 @@
     (nil? (s/check schema value)))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s: %s" sym schema)))
+    (format "%s: %s" sym (schema->str schema))))
 
 (defmethod print-method SchemaPredicate
   [rs ^java.io.Writer writer]
@@ -92,7 +112,10 @@
       this
       (partial predicate-apply pred)
       #(list (symbol (schema-utils/fn-name pred)) %))))
-  (explain [_] (list 'refined (s/explain schema) (symbol (schema-utils/fn-name pred)))))
+  (explain [_]
+    (list 'refined
+          (s/explain schema)
+          (symbol (schema-utils/fn-name pred)))))
 
 ;; Use common representation in the following format:
 ;;
@@ -103,10 +126,9 @@
 (defmethod print-method RefinedSchema
   [^RefinedSchema rs ^java.io.Writer writer]
   (let [schema (:schema rs)
-        schema-name (if (fn? schema?)
-                      (schema-utils/fn-name schema)
-                      schema)
-        f (format "#Refined{v: %s | %s}" schema-name (predicate->str (:pred rs)))]
+        f (format "#Refined{v: %s | %s}"
+                  (schema->str schema)
+                  (predicate->str (:pred rs)))]
     (.write writer f)))
 
 (defn coerce
