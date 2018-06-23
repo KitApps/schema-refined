@@ -179,7 +179,9 @@
    typed vectors and sets, functions, etc)"
   [dt pred]
   (let [tag (str dt)]
-    `(refined (with-meta ~dt {:schema-refined.core/tag ~tag}) ~pred)))
+    `(let [tagged# (with-meta ~dt {:schema-refined.core/tag ~tag})
+           safe?# (identical? (class tagged#) (class ~dt))]
+       (refined (if safe?# tagged# ~dt) ~pred))))
 
 ;;
 ;; boolean operations
