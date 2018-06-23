@@ -45,23 +45,27 @@
 
 (defn schema->str [schema]
   {:pre [(schema? schema)]}
-  (cond
-    (identical? java.lang.String schema)
-    "string"
+  (let [tag (:schema-refined.core/tag (meta schema))]
+    (cond
+      (some? tag)
+      tag
 
-    (and (vector? schema)
-         (= 1 (count schema)))
-    (format "[%s]" (schema->str (first schema)))
+      (identical? java.lang.String schema)
+      "string"
 
-    (and (set? schema)
-         (= 1 (count schema)))
-    (format "#{%s}" (schema->str (first schema)))
+      (and (vector? schema)
+           (= 1 (count schema)))
+      (format "[%s]" (schema->str (first schema)))
 
-    (fn? schema)
-    (schema-utils/fn-name schema)
+      (and (set? schema)
+           (= 1 (count schema)))
+      (format "#{%s}" (schema->str (first schema)))
 
-    :else
-    (with-out-str (pr schema))))
+      (fn? schema)
+      (schema-utils/fn-name schema)
+
+      :else
+      (with-out-str (pr schema)))))
 
 (defn predicate->str
   ([pred] (predicate->str pred "v" false))
@@ -155,6 +159,27 @@
   [dt pred]
   {:pre [(schema? dt)]}
   (RefinedSchema. dt (coerce pred)))
+
+(defmacro refined'
+  "Works the same way as `refined` but captures the representation of type given.
+   Captured type name (tag) will be used for printing `RefinedSchema`, so you can
+   make your types even more readable. See the example below:
+
+   (def Coord {:lat (OpenClosedIntervalOf double -180.0 180.0)
+               :lng (OpenClosedIntervalOf double -90.0 90.0)})
+
+   (def Route (refined' [Coord] (On count (GreaterOrEqual 2))))
+
+   In case you prints your type (e.g. in REPL) you get:
+
+   core> Route
+   #Refined{v: [Coord] | (count v) ≥ 2}
+
+   Please note, that a lot of types would be printed fine w/o macro (like primitives,
+   typed vectors and sets, functions, etc)"
+  [dt pred]
+  (let [tag (str dt)]
+    `(refined (with-meta ~dt {:schema-refined.core/tag ~tag}) ~pred)))
 
 ;;
 ;; boolean operations
