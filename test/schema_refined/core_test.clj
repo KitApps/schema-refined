@@ -829,7 +829,7 @@
 ;;
 
 (defn test-print! [schema pattern]
-  (let [dv (with-out-str (pr schema))]
+  (let [dv (pr-str schema)]
     (t/is (.contains dv pattern) pattern)))
 
 (t/deftest print-vector-values

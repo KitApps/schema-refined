@@ -65,7 +65,7 @@
       (schema-utils/fn-name schema)
 
       :else
-      (with-out-str (pr schema)))))
+      (pr-str schema))))
 
 (defn predicate->str
   ([pred] (predicate->str pred "v" false))
