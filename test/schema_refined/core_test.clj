@@ -823,3 +823,23 @@
     (ok! CounterWithElse {:num 1})
     (ok! CounterWithElse {:num 2})
     (ok! CounterWithElse {:num 100})))
+
+;;
+;; check tough printing cases
+;;
+
+(defn test-print! [schema pattern]
+  (let [dv (pr-str schema)]
+    (t/is (.contains dv pattern) pattern)))
+
+(t/deftest print-vector-values
+  (test-print! (r/refined [double] (r/Greater 10)) "[double]")
+  (test-print! (r/refined [s/Str] r/NonEmpty) "[string]")
+  (test-print! (r/refined #{int} (r/On count (r/Less 10))) "#{int}")
+
+  (test-print! (r/refined' double (r/Less 0)) "double")
+  (test-print! (r/refined' [float] (r/On count (r/Greater 0))) "[float]")
+
+  (let [Coord {:lat float :lng float}
+        Route (r/refined' [Coord] (r/On count (r/GreaterOrEqual 2)))]
+    (test-print! Route "[Coord]")))
