@@ -19,6 +19,8 @@
 
 * Added `deps.edn`
 
+* `And` and `Or` predicates to support variadic arguments
+
 ## 0.3.0-alpha4
 
 * Well... I've started here :)

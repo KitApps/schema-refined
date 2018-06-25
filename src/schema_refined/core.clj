@@ -210,40 +210,47 @@
   [p ^java.io.Writer writer]
   (predicate-print-method p writer))
 
-(defrecord AndPredicate [p1 p2]
+(defn child-predicates->str [parent-sym sym ps]
+  (->> ps
+       (map #(predicate->str % sym true))
+       (cstr/join " ")
+       (format "(%s %s)" parent-sym)))
+
+(defrecord AndPredicate [ps]
   Predicate
   (predicate-apply [_ value]
-    (and (predicate-apply p1 value) (predicate-apply p2 value)))
+    (every? #(predicate-apply % value) ps))
   PredicateShow
   (predicate-show [_ sym]
-    (format "(and %s %s)"
-            (predicate->str p1 sym true)
-            (predicate->str p2 sym true))))
+    (child-predicates->str "and" sym ps)))
 
-;; xxx: we can support > 2 arguments here
 (defn And
-  "Creates predicate that ensures both predicates given are safisfied"
-  [p1 p2]
-  (AndPredicate. (coerce p1) (coerce p2)))
+  "Creates predicate that ensures all predicates given are safisfied.
+   In case only one predicate given returns coerced version w/o wrapping"
+  [p1 & ps]
+  (if (empty? ps)
+    (coerce p1)
+    (AndPredicate. (map coerce (cons p1 ps)))))
 
 (defmethod print-method AndPredicate
   [p ^java.io.Writer writer]
   (predicate-print-method p writer))
 
-(defrecord OrPredicate [p1 p2]
+(defrecord OrPredicate [ps]
   Predicate
   (predicate-apply [_ value]
-    (or (predicate-apply p1 value) (predicate-apply p2 value)))
+    (some? (some #(predicate-apply % value) ps)))
   PredicateShow
   (predicate-show [_ sym]
-    (format "(or %s %s)"
-            (predicate->str p1 sym true)
-            (predicate->str p2 sym true))))
+    (child-predicates->str "or" sym ps)))
 
 (defn Or
-  "Creates the predicate that ensures at least one predicate is satisfied"
-  [p1 p2]
-  (OrPredicate. (coerce p1) (coerce p2)))
+  "Creates the predicate that ensures at least one predicate is satisfied.
+   In case only one predicate given returns coerced version w/o wrapping"
+  [p1 & ps]
+  (if (empty? ps)
+    (coerce p1)
+    (OrPredicate. (map coerce (cons p1 ps)))))
 
 (defmethod print-method OrPredicate
   [p ^java.io.Writer writer]
