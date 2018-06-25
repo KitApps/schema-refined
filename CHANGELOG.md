@@ -17,6 +17,8 @@
 * Introduced `refined'` macro to deal with namings of types (captures the type name
   as it was specified in the code *before* resolving the var itself)
 
+* Added `deps.edn`
+
 ## 0.3.0-alpha4
 
 * Well... I've started here :)
