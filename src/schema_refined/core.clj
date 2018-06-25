@@ -201,7 +201,9 @@
     (not (predicate-apply pred value)))
   PredicateShow
   (predicate-show [_ sym]
-    (format "(not %s)" (predicate->str pred sym true))))
+    (format "(not %s)" (predicate->str pred sym true)))
+  PredicateType
+  (applied-to [_] (applied-to' pred)))
 
 (defn Not [p]
   (NotPredicate. (coerce p)))
