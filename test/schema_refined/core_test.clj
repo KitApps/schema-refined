@@ -55,10 +55,17 @@
     (ok! (r/refined s/Int (r/Not r/NegativeInt)) 42)
     (ok! (r/refined s/Int (r/And r/PositiveInt (r/Less 108))) 42)
     (ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -42)
+    (ok! (r/refined s/Int (r/And (r/Less 10) (r/Less 20) (r/Less 30))) 5)
+    (ok! (r/refined s/Int (r/Or (r/Less 10) (r/Greater 50) (r/Equal 20))) 5)
+    (ok! (r/refined s/Int (r/Or (r/Less 10) (r/Greater 50) (r/Equal 20))) 20)
+    (ok! (r/refined s/Int (r/Or (r/Less 10) (r/Greater 50) (r/Equal 20))) 55)
 
     (not-ok! (r/refined s/Int (r/Not r/NegativeInt)) -42)
     (not-ok! (r/refined s/Int (r/And r/PositiveInt  (r/Less 108))) 142)
-    (not-ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -3))
+    (not-ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -3)
+    (not-ok! (r/refined s/Int (r/And (r/Less 10) (r/Less 20) (r/Less 30))) 15)
+    (not-ok! (r/refined s/Int (r/And (r/Less 10) (r/Less 20) (r/Less 30))) 25)
+    (not-ok! (r/refined s/Int (r/Or (r/Less 10) (r/Greater 50) (r/Equal 20))) 25))
 
   (t/deftest refined-with-equal-predicate
     (ok! (r/refined s/Int (r/Equal 42)) 42)
