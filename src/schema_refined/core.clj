@@ -40,8 +40,16 @@
 (defprotocol PredicateShow
   (predicate-show [this sym]))
 
+(defprotocol PredicateType
+  (applied-to [this]))
+
 (defn predicate? [p]
   (satisfies? Predicate p))
+
+(defn applied-to' [p]
+  {:pre [(predicate? p)]}
+  (when (satisfies? PredicateType p)
+    (applied-to p)))
 
 (defn schema->str [schema]
   {:pre [(schema? schema)]}
@@ -288,7 +296,9 @@
     (< value n))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s < %s" sym n)))
+    (format "%s < %s" sym n))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defmethod print-method LessPredicate
   [p writer]
@@ -305,7 +315,9 @@
     (<= value n))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s ≤ %s" sym n)))
+    (format "%s ≤ %s" sym n))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defmethod print-method LessOrEqualPredicate
   [p writer]
@@ -322,7 +334,9 @@
     (< n value))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s > %s" sym n)))
+    (format "%s > %s" sym n))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defmethod print-method GreaterPredicate
   [p writer]
@@ -339,7 +353,9 @@
     (<= n value))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s ≥ %s" sym n)))
+    (format "%s ≥ %s" sym n))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defmethod print-method GreaterOrEqualPredicate
   [p writer]
@@ -356,7 +372,9 @@
     (< a value b))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s ∈ (%s, %s)" sym a b)))
+    (format "%s ∈ (%s, %s)" sym a b))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defn OpenInterval
   "a < value < b"
@@ -370,7 +388,9 @@
     (<= a value b))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s ∈ [%s, %s]" sym a b)))
+    (format "%s ∈ [%s, %s]" sym a b))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defn ClosedInterval
   "a <= value <= b"
@@ -384,7 +404,9 @@
     (and (< a value) (<= value b)))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s ∈ (%s, %s]" sym a b)))
+    (format "%s ∈ (%s, %s]" sym a b))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defn OpenClosedInterval
   "a < value <= b"
@@ -398,7 +420,9 @@
     (and (<= a value) (< value b)))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s ∈ [%s, %s)" sym a b)))
+    (format "%s ∈ [%s, %s)" sym a b))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defn ClosedOpenInterval
   "a <= value < b"
@@ -423,7 +447,9 @@
     (= o (mod value div)))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s mod %s = %s" sym div o)))
+    (format "%s mod %s = %s" sym div o))
+  PredicateType
+  (applied-to [_] #{:num}))
 
 (defn Modulo
   "The value modulus by div = o"
