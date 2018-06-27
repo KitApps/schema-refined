@@ -3,7 +3,8 @@
             [schema.spec.core :as schema-spec]
             [schema.spec.variant :as schema-variant]
             [schema.utils :as schema-utils]
-            [clojure.string :as cstr])
+            [clojure.string :as cstr]
+            [clojure.set :as cset])
   (:refer-clojure :exclude [boolean?])
   (:import (java.net URI URISyntaxException URL MalformedURLException)))
 
@@ -42,6 +43,32 @@
 
 (defprotocol PredicateType
   (applied-to [this]))
+
+(defprotocol Typed
+  (coercable-to [this]
+    "Returns set of types from the following:
+     :any, :num, :str, :char, [:seq *]"))
+
+;; xxx: very dirty implementation
+(defn coercable-to' [dt]
+  (cond
+    (satisfies? Typed dt)
+    (coercable-to dt)
+
+    (identical? java.lang.String dt)
+    #{:str [:seq :char]}
+
+    (identical? java.lang.Integer dt)
+    #{:num}
+
+    (identical? double dt)
+    #{:num}
+
+    (identical? java.lang.Number dt)
+    #{:num}
+
+    (and (vector? dt) (= 1 (count dt)))
+    #{[:seq (coercable-to' (first dt))]}))
 
 (defn predicate? [p]
   (satisfies? Predicate p))
@@ -127,7 +154,11 @@
   (explain [_]
     (list 'refined
           (s/explain schema)
-          (symbol (schema-utils/fn-name pred)))))
+          (symbol (schema-utils/fn-name pred))))
+  Typed
+  (coercable-to [_]
+    ;; note, that refined doesn't not change base type (set of values)
+    (coercable-to' schema)))
 
 ;; Use common representation in the following format:
 ;;
@@ -159,6 +190,24 @@
     (ifn? pred)
     (FunctionPredicate. pred)))
 
+(defn type->str [type]
+  (cond
+    (= :num type)
+    "numerical (short, int, long, float, double)"
+
+    (= :str type)
+    "string"
+
+    ;; xxx: rules for seq
+
+    :else
+    type))
+
+(defn types-set->str [types]
+  (if (= 1 (count types))
+    (type->str (first types))
+    (format "one of: %s" (cstr/join ", " (map type->str types)))))
+
 (defn refined
   "Takes type (schema) and a predicate, creating a type that
    should satisfy both basic type and predicate. Note, that predicate might be
@@ -166,7 +215,19 @@
    to boolean or another type (schema)"
   [dt pred]
   {:pre [(schema? dt)]}
-  (RefinedSchema. dt (coerce pred)))
+  (let [tt (coercable-to' dt)
+        coerced-pred (coerce pred)
+        at (applied-to' coerced-pred)]
+    (when (and (some? tt)
+               (some? at)
+               (empty? (cset/intersection tt at)))
+      (throw (IllegalArgumentException.
+              (format "Predicate {P(v) = %s} could not be applied to type '%s' as it expects %s"
+                      (predicate->str coerced-pred "v" false)
+                      ;; xxx: check if we need to wrap this into ''
+                      (schema->str dt)
+                      (types-set->str at)))))
+    (RefinedSchema. dt coerced-pred)))
 
 (defmacro refined'
   "Works the same way as `refined` but captures the representation of type given.
