@@ -856,18 +856,29 @@
 ;;
 
 (t/deftest mistyped-predicates-rejection
-  (t/is (thrown? Exception (r/refined s/Str (r/Greater 0))))
-  (t/is (thrown? Exception (r/refined [s/Str] (r/Less 0))))
-  (t/is (thrown? Exception (r/refined [s/Str] (r/First (r/Greater 0)))))
-  (t/is (thrown? Exception (r/And (r/Greater 0) r/NonEmpty)))
-  (t/is (thrown? Exception(r/refined (r/refined [s/Str] r/NonEmpty)
-                                     (r/Greater 0))))
-  (t/is (thrown? Exception (r/refined (r/NonEmptyListOf s/Str)
-                                      (r/First (r/Greater 0)))))
-  (t/is (thrown? Exception (r/And (r/Greater 0) (r/Less -1))))
-  (t/is (thrown? Exception (r/refined [s/Str] (r/On count r/NonEmpty))))
-  (t/is (thrown? Exception (r/refined double (r/On count (r/Less 10)))))
-  (t/is (thrown? Exception (r/refined s/Num (r/StartsWith "1"))))
-  (t/is (thrown? Exception (r/refined r/ASCIILetterChar (r/Includes "ї"))))
-  (t/is (thrown? Exception (r/refined (r/BoundedSizeStr 1 5)
-                                      (r/Includes "thisiswaytoolong")))))
+  (t/testing "simple types"
+    (t/is (thrown? Exception (r/refined s/Str (r/Greater 0))))
+    (t/is (thrown? Exception (r/refined [s/Str] (r/Less 0))))
+    (t/is (thrown? Exception(r/refined (r/refined [s/Str] r/NonEmpty)
+                                       (r/Greater 0))))
+    (t/is (thrown? Exception (r/refined s/Num (r/StartsWith "1")))))
+
+  (t/testing "predicate combinations"
+    (t/is (thrown? Exception (r/And (r/Greater 0) r/NonEmpty)))
+    (t/is (thrown? Exception (r/Or (r/Greater 0) r/NonEmpty)))
+    (t/is (thrown? Exception (r/And (r/Greater 0) (r/Equal "boom!")))))
+
+  (t/testing "dependent predicate combinations"
+    (t/is (thrown? Exception (r/And (r/Greater 0) (r/Less -1))))
+    (t/is (thrown? Exception (r/refined r/ASCIILetterChar (r/Includes "ї"))))
+    (t/is (thrown? Exception (r/refined (r/BoundedSizeStr 1 5)
+                                        (r/Includes "thisiswaytoolong")))))
+
+  (t/testing "elements of the collection"
+    (t/is (thrown? Exception (r/refined [s/Str] (r/First (r/Greater 0)))))
+    (t/is (thrown? Exception (r/refined (r/NonEmptyListOf s/Str)
+                                        (r/First (r/Greater 0))))))
+
+  (t/testing "function type signature"
+    (t/is (thrown? Exception (r/refined [s/Str] (r/On count r/NonEmpty))))
+    (t/is (thrown? Exception (r/refined double (r/On count (r/Less 10)))))))

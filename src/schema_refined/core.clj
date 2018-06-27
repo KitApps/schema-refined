@@ -4,7 +4,8 @@
             [schema.spec.variant :as schema-variant]
             [schema.utils :as schema-utils]
             [clojure.string :as cstr]
-            [clojure.set :as cset])
+            [clojure.set :as cset]
+            [schema-refined.core :as r])
   (:refer-clojure :exclude [boolean?])
   (:import (java.net URI URISyntaxException URL MalformedURLException)))
 
@@ -49,6 +50,17 @@
     "Returns set of types from the following:
      :any, :num, :str, :char, [:seq *]"))
 
+(def numericals #{short
+                  int
+                  long
+                  double
+                  s/Int
+                  java.lang.Short
+                  java.lang.Integer
+                  java.lang.Double
+                  java.lang.Long
+                  java.lang.Number})
+
 ;; xxx: very dirty implementation
 (defn coercable-to' [dt]
   (cond
@@ -58,16 +70,15 @@
     (identical? java.lang.String dt)
     #{:str [:seq :char]}
 
-    (identical? java.lang.Integer dt)
+    (contains? numericals dt)
     #{:num}
 
-    (identical? double dt)
-    #{:num}
+    ;; xxx: we know that this would be a seq of vector pairs...
+    (map? dt)
+    #{:map :seq}
 
-    (identical? java.lang.Number dt)
-    #{:num}
-
-    (and (vector? dt) (= 1 (count dt)))
+    ;; cases like [double] or #{s/Str}
+    (and (or (vector? dt) (set? dt)) (= 1 (count dt)))
     #{[:seq (coercable-to' (first dt))]}))
 
 (defn predicate? [p]
@@ -134,7 +145,10 @@
     (nil? (s/check schema value)))
   PredicateShow
   (predicate-show [_ sym]
-    (format "%s: %s" sym (schema->str schema))))
+    (format "%s: %s" sym (schema->str schema)))
+  PredicateType
+  (applied-to [_]
+    (coercable-to' schema)))
 
 (defmethod print-method SchemaPredicate
   [rs ^java.io.Writer writer]
@@ -157,7 +171,7 @@
           (symbol (schema-utils/fn-name pred))))
   Typed
   (coercable-to [_]
-    ;; note, that refined doesn't not change base type (set of values)
+    ;; note, that refined doesn't not change the 'basic' type
     (coercable-to' schema)))
 
 ;; Use common representation in the following format:
@@ -208,6 +222,9 @@
     (type->str (first types))
     (format "one of: %s" (cstr/join ", " (map type->str types)))))
 
+(defn expand-higher-kinds [types]
+  (mapcat #(if (vector? %1) [%1 (first %1)] [%1]) types))
+
 (defn refined
   "Takes type (schema) and a predicate, creating a type that
    should satisfy both basic type and predicate. Note, that predicate might be
@@ -220,7 +237,7 @@
         at (applied-to' coerced-pred)]
     (when (and (some? tt)
                (some? at)
-               (empty? (cset/intersection tt at)))
+               (empty? (cset/intersection (set (expand-higher-kinds tt)) at)))
       (throw (IllegalArgumentException.
               (format "Predicate {P(v) = %s} could not be applied to type '%s' as it expects %s"
                       (predicate->str coerced-pred "v" false)
@@ -279,13 +296,29 @@
        (cstr/join " ")
        (format "(%s %s)" parent-sym)))
 
+(defn applied-to-group [ps]
+  (let [aps (map applied-to' ps)]
+    (when-not (some nil? aps)
+      (apply cset/intersection (remove nil? aps)))))
+
 (defrecord AndPredicate [ps]
   Predicate
   (predicate-apply [_ value]
     (every? #(predicate-apply % value) ps))
   PredicateShow
   (predicate-show [_ sym]
-    (child-predicates->str "and" sym ps)))
+    (child-predicates->str "and" sym ps))
+  PredicateType
+  (applied-to [_]
+    (applied-to-group ps)))
+
+(defn try-merge-predicates! [ps]
+  (let [aps (map applied-to' ps)]
+    (when (and (some some? aps)
+               (empty? (apply cset/intersection (remove nil? aps))))
+      ;; xxx: better error message :(
+      (throw (IllegalArgumentException.
+              (format "Predicates given are incompatible :("))))))
 
 (defn And
   "Creates predicate that ensures all predicates given are safisfied.
@@ -293,7 +326,9 @@
   [p1 & ps]
   (if (empty? ps)
     (coerce p1)
-    (AndPredicate. (map coerce (cons p1 ps)))))
+    (let [coerced-predicates (map coerce (cons p1 ps))]
+      (try-merge-predicates! coerced-predicates)
+      (AndPredicate. coerced-predicates))))
 
 (defmethod print-method AndPredicate
   [p ^java.io.Writer writer]
@@ -305,7 +340,10 @@
     (some? (some #(predicate-apply % value) ps)))
   PredicateShow
   (predicate-show [_ sym]
-    (child-predicates->str "or" sym ps)))
+    (child-predicates->str "or" sym ps))
+  PredicateType
+  (applied-to [_]
+    (applied-to-group ps)))
 
 (defn Or
   "Creates the predicate that ensures at least one predicate is satisfied.
@@ -313,7 +351,9 @@
   [p1 & ps]
   (if (empty? ps)
     (coerce p1)
-    (OrPredicate. (map coerce (cons p1 ps)))))
+    (let [coerced-predicates (map coerce (cons p1 ps))]
+      (try-merge-predicates! coerced-predicates)
+      (OrPredicate. coerced-predicates))))
 
 (defmethod print-method OrPredicate
   [p ^java.io.Writer writer]
@@ -343,6 +383,7 @@
 ;; ordering predicates
 ;;
 
+;; xxx: we need to derive predicate type here from the value
 (defrecord EqualPredicate [n]
   Predicate
   (predicate-apply [_ value]
@@ -708,7 +749,9 @@
       (empty? value))
     PredicateShow
     (predicate-show [_ sym]
-      (format "%s = ∅" sym))))
+      (format "%s = ∅" sym))
+    PredicateType
+    (applied-to [_] #{:seq})))
 
 (def NonEmpty
   (reify
@@ -717,7 +760,9 @@
       (not (empty? value)))
     PredicateShow
     (predicate-show [_ sym]
-      (format "%s ≠ ∅" sym))))
+      (format "%s ≠ ∅" sym))
+    PredicateType
+    (applied-to [_] #{:seq})))
 
 (defn BoundedSize [left right]
   {:pre [(integer? left)
@@ -735,7 +780,9 @@
   (predicate-show [_ sym]
     (if (= identity f)
       (format "(distinct? %s)" sym)
-      (format "(distinct-by? %s %s)" (schema-utils/fn-name f) sym))))
+      (format "(distinct-by? %s %s)" (schema-utils/fn-name f) sym)))
+  PredicateType
+  (applied-to [_] #{:seq}))
 
 (defmethod print-method DistinctByPredicate
   [p ^java.io.Writer writer]
@@ -755,7 +802,9 @@
   PredicateShow
   (predicate-show [_ sym]
     (let [sym' (str sym "'")]
-      (format "∀%s ∊ %s: %s" sym' sym (predicate->str pred sym' false)))))
+      (format "∀%s ∊ %s: %s" sym' sym (predicate->str pred sym' false))))
+  PredicateType
+  (applied-to [_] #{:seq}))
 
 (defmethod print-method ForallPredicate
   [p ^java.io.Writer writer]
@@ -771,7 +820,9 @@
   PredicateShow
   (predicate-show [_ sym]
     (let [sym' (str sym "'")]
-      (format "∃%s ∊ %s: %s" sym' sym (predicate->str pred sym' false)))))
+      (format "∃%s ∊ %s: %s" sym' sym (predicate->str pred sym' false))))
+  PredicateType
+  (applied-to [_] #{:seq}))
 
 (defmethod print-method ExistsPredicate
   [p ^java.io.Writer writer]
@@ -793,7 +844,9 @@
   PredicateShow
   (predicate-show [_ sym]
     (let [sym' (str sym "'")]
-      (format "%s = %s[%s]: %s" sym' sym n (predicate->str pred sym' false)))))
+      (format "%s = %s[%s]: %s" sym' sym n (predicate->str pred sym' false))))
+  PredicateType
+  (applied-to [_] #{:seq}))
 
 (defmethod print-method IndexPredicate
   [p ^java.io.Writer writer]
@@ -822,7 +875,9 @@
     (let [sym' (format "[%s[i], %s[i+1]]" sym sym)]
       (format "∀i ∊ [0, (dec (count %s))): %s"
               sym
-              (predicate->str pred sym' false)))))
+              (predicate->str pred sym' false))))
+  PredicateType
+  (applied-to [_] #{:seq}))
 
 (defmethod print-method PairwisePredicate
   [p ^java.io.Writer writer]
