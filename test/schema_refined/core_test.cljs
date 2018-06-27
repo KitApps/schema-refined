@@ -1,14 +1,9 @@
 (ns schema-refined.core-test
+  (:require-macros [schema-refined.macros :refer [ok! not-ok!]])
   (:require [schema-refined.core :as r]
             [schema.core :as s]
-            [schema-refined.clojure :as sr]
-            [clojure.test :as t]))
-
-(defmacro ok! [dt value]
-  `(t/is (nil? (s/check ~dt ~value))))
-
-(defmacro not-ok! [dt value]
-  `(t/is (some? (s/check ~dt ~value))))
+            [schema-refined.cljs :as sr]
+            [cljs.test :as t]))
 
 (defn numeric-map [size]
   (->> size
@@ -17,10 +12,10 @@
        (into {})))
 
 (t/testing "refined"
-  (let [LatCoord (r/refined double (r/OpenClosedInterval -90.0 90.0))
-        LngCoord (r/OpenClosedIntervalOf double -180.0 180.0)
+  (let [LatCoord (r/refined s/Num (r/OpenClosedInterval -90.0 90.0))
+        LngCoord (r/OpenClosedIntervalOf s/Num -180.0 180.0)
         GeoPoint {:lat LatCoord :lng LngCoord}
-        Route    (r/BoundedListOf GeoPoint 2 50)
+        Route (r/BoundedListOf GeoPoint 2 50)
 
         input [{:lat 47.3529 :lng 8.5199}
                {:lat 51.5085 :lng -0.0762}
@@ -30,17 +25,17 @@
       (ok! Route input))
 
     (t/deftest refined-with-built-in-pred-generics
-      (let [InZurich {:lat (r/refined double (r/OpenInterval 47.34 47.39))
-                      :lng (r/refined double (r/OpenInterval 8.51 8.57))}
+      (let [InZurich {:lat (r/refined s/Num (r/OpenInterval 47.34 47.39))
+                      :lng (r/refined s/Num (r/OpenInterval 8.51 8.57))}
 
-            InRome {:lat (r/refined double (r/OpenInterval 41.87 41.93))
-                    :lng (r/refined double (r/OpenInterval 12.46 12.51))}
+            InRome {:lat (r/refined s/Num (r/OpenInterval 41.87 41.93))
+                    :lng (r/refined s/Num (r/OpenInterval 12.46 12.51))}
 
-            RouteFromZurich       (r/refined Route (r/First InZurich))
-            RouteToRome           (r/refined Route (r/Last InRome))
+            RouteFromZurich (r/refined Route (r/First InZurich))
+            RouteToRome (r/refined Route (r/Last InRome))
             RouteFromZurichToRome (r/refined Route (r/And (r/First InZurich) (r/Last InRome)))
 
-            FromZurichToRome                   (r/And (r/First InZurich) (r/Last InRome))
+            FromZurichToRome (r/And (r/First InZurich) (r/Last InRome))
             RouteFromZurichToRomeWithLess3Hops (r/refined Route (r/And FromZurichToRome (r/BoundedSize 2 5)))]
         (ok! RouteFromZurichToRome input)
         (ok! RouteFromZurichToRomeWithLess3Hops input)))
@@ -58,7 +53,7 @@
     (ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -42)
 
     (not-ok! (r/refined s/Int (r/Not r/NegativeInt)) -42)
-    (not-ok! (r/refined s/Int (r/And r/PositiveInt  (r/Less 108))) 142)
+    (not-ok! (r/refined s/Int (r/And r/PositiveInt (r/Less 108))) 142)
     (not-ok! (r/refined s/Int (r/Or r/PositiveInt (r/Less -7))) -3))
 
   (t/deftest refined-with-equal-predicate
@@ -70,37 +65,37 @@
 
   (t/deftest refined-with-less-predicate
     (ok! (r/refined s/Int (r/Less 108)) 42)
-    (ok! (r/refined double (r/Less 0.7)) 0.5)
+    (ok! (r/refined s/Num (r/Less 0.7)) 0.5)
 
     (not-ok! (r/refined s/Int (r/Less 108)) 108)
-    (not-ok! (r/refined double (r/Less 0.7)) 3.14))
+    (not-ok! (r/refined s/Num (r/Less 0.7)) 3.14))
 
   (t/deftest refined-with-less-or-equal-predicate
     (ok! (r/refined s/Int (r/LessOrEqual 108)) 42)
     (ok! (r/refined s/Int (r/LessOrEqual 108)) 108)
-    (ok! (r/refined double (r/LessOrEqual 0.7)) 0.7)
+    (ok! (r/refined s/Num (r/LessOrEqual 0.7)) 0.7)
 
     (not-ok! (r/refined s/Int (r/LessOrEqual 108)) 109)
-    (not-ok! (r/refined double (r/LessOrEqual 0.7)) 3.14))
+    (not-ok! (r/refined s/Num (r/LessOrEqual 0.7)) 3.14))
 
   (t/deftest refined-with-greater-predicate
     (ok! (r/refined s/Int (r/Greater 42)) 108)
-    (ok! (r/refined double (r/Greater 0.5)) 0.7)
+    (ok! (r/refined s/Num (r/Greater 0.5)) 0.7)
 
     (not-ok! (r/refined s/Int (r/Greater 108)) 108)
-    (not-ok! (r/refined double (r/Greater 3.14)) 0.7))
+    (not-ok! (r/refined s/Num (r/Greater 3.14)) 0.7))
 
   (t/deftest refined-with-greater-or-equal-predicate
     (ok! (r/refined s/Int (r/GreaterOrEqual 42)) 108)
     (ok! (r/refined s/Int (r/GreaterOrEqual 108)) 108)
-    (ok! (r/refined double (r/GreaterOrEqual 0.7)) 0.7)
+    (ok! (r/refined s/Num (r/GreaterOrEqual 0.7)) 0.7)
 
     (not-ok! (r/refined s/Int (r/GreaterOrEqual 109)) 108)
-    (not-ok! (r/refined double (r/GreaterOrEqual 3.14)) 0.7))
+    (not-ok! (r/refined s/Num (r/GreaterOrEqual 3.14)) 0.7))
 
   (t/deftest refined-with-open-interval-predicate
     (ok! (r/refined s/Int (r/OpenInterval 0 43)) 42)
-    (ok! (r/refined double (r/OpenInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined s/Num (r/OpenInterval 0.0 1.0)) 0.7)
     (ok! (r/refined s/Int (r/Epsilon 10 5)) 10)
     (ok! (r/refined s/Int (r/Epsilon 10 5)) 13)
     (ok! (r/refined s/Int (r/Epsilon 10 5)) 7)
@@ -109,10 +104,10 @@
     (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 43)
     (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) -7)
     (not-ok! (r/refined s/Int (r/OpenInterval 0 43)) 108)
-    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 0.0)
-    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 1.0)
-    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) 3.14)
-    (not-ok! (r/refined double (r/OpenInterval 0.0 1.0)) -3.14)
+    (not-ok! (r/refined s/Num (r/OpenInterval 0.0 1.0)) 0.0)
+    (not-ok! (r/refined s/Num (r/OpenInterval 0.0 1.0)) 1.0)
+    (not-ok! (r/refined s/Num (r/OpenInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined s/Num (r/OpenInterval 0.0 1.0)) -3.14)
     (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 5)
     (not-ok! (r/refined s/Int (r/Epsilon 10 5)) 15)
     (not-ok! (r/refined s/Int (r/Epsilon 10 5)) -7)
@@ -122,40 +117,40 @@
     (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 42)
     (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 0)
     (ok! (r/refined s/Int (r/ClosedInterval 0 43)) 43)
-    (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 0.7)
-    (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 0.0)
-    (ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 1.0)
+    (ok! (r/refined s/Num (r/ClosedInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined s/Num (r/ClosedInterval 0.0 1.0)) 0.0)
+    (ok! (r/refined s/Num (r/ClosedInterval 0.0 1.0)) 1.0)
 
     (not-ok! (r/refined s/Int (r/ClosedInterval 0 43)) -7)
     (not-ok! (r/refined s/Int (r/ClosedInterval 0 43)) 108)
-    (not-ok! (r/refined double (r/ClosedInterval 0.0 1.0)) 3.14)
-    (not-ok! (r/refined double (r/ClosedInterval 0.0 1.0)) -3.14))
+    (not-ok! (r/refined s/Num (r/ClosedInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined s/Num (r/ClosedInterval 0.0 1.0)) -3.14))
 
   (t/deftest refined-with-open-closed-interval-predicate
     (ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 42)
     (ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 43)
-    (ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 0.7)
-    (ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 1.0)
+    (ok! (r/refined s/Num (r/OpenClosedInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined s/Num (r/OpenClosedInterval 0.0 1.0)) 1.0)
 
     (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) -7)
     (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 108)
     (not-ok! (r/refined s/Int (r/OpenClosedInterval 0 43)) 0)
-    (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 3.14)
-    (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) -3.14)
-    (not-ok! (r/refined double (r/OpenClosedInterval 0.0 1.0)) 0.0))
+    (not-ok! (r/refined s/Num (r/OpenClosedInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined s/Num (r/OpenClosedInterval 0.0 1.0)) -3.14)
+    (not-ok! (r/refined s/Num (r/OpenClosedInterval 0.0 1.0)) 0.0))
 
   (t/deftest refined-with-closed-open-interval-predicate
     (ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 42)
     (ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 0)
-    (ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 0.7)
-    (ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 0.0)
+    (ok! (r/refined s/Num (r/ClosedOpenInterval 0.0 1.0)) 0.7)
+    (ok! (r/refined s/Num (r/ClosedOpenInterval 0.0 1.0)) 0.0)
 
     (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) -7)
     (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 108)
     (not-ok! (r/refined s/Int (r/ClosedOpenInterval 0 43)) 43)
-    (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 3.14)
-    (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) -3.14)
-    (not-ok! (r/refined double (r/ClosedOpenInterval 0.0 1.0)) 1.0))
+    (not-ok! (r/refined s/Num (r/ClosedOpenInterval 0.0 1.0)) 3.14)
+    (not-ok! (r/refined s/Num (r/ClosedOpenInterval 0.0 1.0)) -3.14)
+    (not-ok! (r/refined s/Num (r/ClosedOpenInterval 0.0 1.0)) 1.0))
 
   (t/deftest refined-with-even-predicate
     (ok! (r/refined s/Int r/Even) 108)
@@ -250,8 +245,8 @@
     (not-ok! (r/refined {s/Keyword s/Str} r/NonEmpty) {}))
 
   (t/deftest refined-with-bounded-size-predicate
-    (let [min-size    1
-          max-size    3
+    (let [min-size 1
+          max-size 3
           BoundedSize (r/BoundedSize min-size max-size)]
       (doseq [size (range min-size (inc max-size))]
         (ok! (r/refined [s/Num] BoundedSize) (range size))
@@ -277,8 +272,8 @@
 
     (not-ok! (r/refined [{:foo s/Num}] (r/DistinctBy :foo))
              (->> 1
-                  (repeat 7)
-                  (map #(-> {:foo %})))))
+               (repeat 7)
+               (map #(-> {:foo %})))))
 
   (t/deftest refined-with-forall-predicate
     (ok! (r/refined [s/Int] (r/Forall odd?)) (range 1 10 2))
@@ -355,7 +350,6 @@
   (t/deftest refined-with-pairwise-predicate
     (let [sum-equals-3? (fn [[a b]] (= 3 (+ a b)))]
       (ok! (r/refined [s/Int] (r/Pairwise sum-equals-3?)) [1 2 1])
-
       (not-ok! (r/refined [s/Int] (r/Pairwise sum-equals-3?)) [1 1])))
 
   (t/deftest refined-with-ascending-on-predicate
@@ -373,12 +367,12 @@
              (conj (map #(-> {:price %}) (range 10 0 -1)) {:price 5})))
 
   (let [SponsorshipLevel (s/enum "bronze" "silver" "gold")
-        better-sponsor?  (fn [{a-level :level} {b-level :level}]
-                           (cond
-                             (= a-level b-level)  0
-                             (= a-level "bronze") -1
-                             (= b-level "gold")   -1
-                             :else 1))]
+        better-sponsor? (fn [{a-level :level} {b-level :level}]
+                          (cond
+                            (= a-level b-level) 0
+                            (= a-level "bronze") -1
+                            (= b-level "gold") -1
+                            :else 1))]
     (t/deftest refined-with-ascending-by-predicate
       (ok! (r/refined [{:level SponsorshipLevel}] (r/AscendingBy better-sponsor?))
            [{:level "bronze"} {:level "silver"} {:level "silver"} {:level "gold"}])
@@ -447,8 +441,8 @@
   (not-ok! (r/BoundedSizeStr 1 10 true) " "))
 
 (t/deftest validate-bounded-collections
-  (let [min-size    1
-        max-size    3]
+  (let [min-size 1
+        max-size 3]
     (doseq [size (range min-size (inc max-size))]
       (ok! (r/BoundedListOf s/Num min-size max-size) (range size))
       (ok! (r/BoundedSetOf s/Num min-size max-size) (set (range size)))
@@ -494,9 +488,9 @@
   (not-ok! r/DigitChar "j"))
 
 (t/deftest validate-ascii-letter-char
-  (doseq [i (map char (range (int \a) (inc (int \z))))]
+  (doseq [i (map char (range (.charCodeAt \a) (inc (.charCodeAt \z))))]
     (ok! r/ASCIILetterChar (str i)))
-  (doseq [i (map char (range (int \A) (inc (int \Z))))]
+  (doseq [i (map char (range (.charCodeAt \A) (inc (.charCodeAt \Z))))]
     (ok! r/ASCIILetterChar (str i)))
 
   (not-ok! r/ASCIILetterChar "attendify.com")
@@ -505,9 +499,9 @@
   (not-ok! r/ASCIILetterChar "7"))
 
 (t/deftest validate-ascii-letter-or-digit-char
-  (doseq [i (map char (range (int \a) (inc (int \z))))]
+  (doseq [i (map char (range (.charCodeAt \a) (inc (.charCodeAt \z))))]
     (ok! r/ASCIILetterOrDigitChar (str i)))
-  (doseq [i (map char (range (int \A) (inc (int \Z))))]
+  (doseq [i (map char (range (.charCodeAt \A) (inc (.charCodeAt \Z))))]
     (ok! r/ASCIILetterOrDigitChar (str i)))
   (doseq [i (range 10)]
     (ok! r/ASCIILetterOrDigitChar (str i)))
@@ -544,23 +538,23 @@
   (ok! r/IntStr "-401")
   (ok! r/IntStr "101410")
   (ok! r/IntStr "000000200")
+  (ok! r/IntStr "1111 ")
 
   (not-ok! r/IntStr "attendify.com")
   (not-ok! r/IntStr "   ")
-  (not-ok! r/IntStr "j")
-  (not-ok! r/IntStr "1111 "))
+  (not-ok! r/IntStr "j"))
 
 (t/deftest validate-float-str
   (ok! r/FloatStr "0")
   (ok! r/FloatStr "3.14")
+  (ok! r/FloatStr "3_14") ;; JS weirdo
   (ok! r/FloatStr "-123.203201")
   (ok! r/FloatStr "101410")
   (ok! r/FloatStr "1111 ")
 
   (not-ok! r/FloatStr "attendify.com")
   (not-ok! r/FloatStr "   ")
-  (not-ok! r/FloatStr "j")
-  (not-ok! r/FloatStr "3_14"))
+  (not-ok! r/FloatStr "j"))
 
 (t/deftest validate-starts-with-str
   (ok! (r/StartsWithStr "https://") "https://attendify.com")
@@ -590,58 +584,58 @@
 (t/deftest validate-positive-numeric
   (ok! (r/PositiveOf s/Int) 42)
   (ok! r/PositiveInt 42)
-  (ok! (r/PositiveOf double) 3.14)
+  (ok! (r/PositiveOf s/Num) 3.14)
   (ok! r/PositiveDouble 3.14)
 
   (not-ok! (r/PositiveOf s/Int) 0)
   (not-ok! r/PositiveInt 0)
   (not-ok! (r/PositiveOf s/Int) -7)
   (not-ok! r/PositiveInt -7)
-  (not-ok! (r/PositiveOf double) -3.14)
+  (not-ok! (r/PositiveOf s/Num) -3.14)
   (not-ok! r/PositiveDouble -3.14))
 
 (t/deftest validate-negative-numeric
   (ok! (r/NegativeOf s/Int) -42)
   (ok! r/NegativeInt -42)
-  (ok! (r/NegativeOf double) -3.14)
+  (ok! (r/NegativeOf s/Num) -3.14)
   (ok! r/NegativeDouble -3.14)
 
   (not-ok! (r/NegativeOf s/Int) 0)
   (not-ok! r/NegativeInt 0)
   (not-ok! (r/NegativeOf s/Int) 7)
   (not-ok! r/NegativeInt 7)
-  (not-ok! (r/NegativeOf double) 3.14)
+  (not-ok! (r/NegativeOf s/Num) 3.14)
   (not-ok! r/NegativeDouble 3.14))
 
 (t/deftest validate-non-negative-numeric
   (ok! (r/NonNegativeOf s/Int) 42)
   (ok! r/NonNegativeInt 42)
-  (ok! (r/NonNegativeOf double) 3.14)
+  (ok! (r/NonNegativeOf s/Num) 3.14)
   (ok! r/NonNegativeDouble 3.14)
   (ok! (r/NonNegativeOf s/Int) 0)
   (ok! r/NonNegativeInt 0)
 
   (not-ok! (r/NonNegativeOf s/Int) -7)
   (not-ok! r/NonNegativeInt -7)
-  (not-ok! (r/NonNegativeOf double) -3.14)
+  (not-ok! (r/NonNegativeOf s/Num) -3.14)
   (not-ok! r/NonNegativeDouble -3.14))
 
 (t/deftest validate-non-positive-numeric
   (ok! (r/NonPositiveOf s/Int) -42)
   (ok! r/NonPositiveInt -42)
-  (ok! (r/NonPositiveOf double) -3.14)
+  (ok! (r/NonPositiveOf s/Num) -3.14)
   (ok! r/NonPositiveDouble -3.14)
   (ok! (r/NonPositiveOf s/Int) 0)
   (ok! r/NonPositiveInt 0)
 
   (not-ok! (r/NonPositiveOf s/Int) 7)
   (not-ok! r/NonPositiveInt 7)
-  (not-ok! (r/NonPositiveOf double) 3.14)
+  (not-ok! (r/NonPositiveOf s/Num) 3.14)
   (not-ok! r/NonPositiveDouble 3.14))
 
 (t/deftest validate-numeric-open-interval
   (ok! (r/OpenIntervalOf s/Int 0 43) 42)
-  (ok! (r/OpenIntervalOf double 0.0 1.0) 0.7)
+  (ok! (r/OpenIntervalOf s/Num 0.0 1.0) 0.7)
   (ok! (r/EpsilonOf s/Int 10 5) 10)
   (ok! (r/EpsilonOf s/Int 10 5) 13)
   (ok! (r/EpsilonOf s/Int 10 5) 7)
@@ -650,10 +644,10 @@
   (not-ok! (r/OpenIntervalOf s/Int 0 43) 43)
   (not-ok! (r/OpenIntervalOf s/Int 0 43) -7)
   (not-ok! (r/OpenIntervalOf s/Int 0 43) 108)
-  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 0.0)
-  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 1.0)
-  (not-ok! (r/OpenIntervalOf double 0.0 1.0) 3.14)
-  (not-ok! (r/OpenIntervalOf double 0.0 1.0) -3.14)
+  (not-ok! (r/OpenIntervalOf s/Num 0.0 1.0) 0.0)
+  (not-ok! (r/OpenIntervalOf s/Num 0.0 1.0) 1.0)
+  (not-ok! (r/OpenIntervalOf s/Num 0.0 1.0) 3.14)
+  (not-ok! (r/OpenIntervalOf s/Num 0.0 1.0) -3.14)
   (not-ok! (r/EpsilonOf s/Int 10 5) 5)
   (not-ok! (r/EpsilonOf s/Int 10 5) 15)
   (not-ok! (r/EpsilonOf s/Int 10 5) -7)
@@ -663,40 +657,40 @@
   (ok! (r/ClosedIntervalOf s/Int 0 43) 42)
   (ok! (r/ClosedIntervalOf s/Int 0 43) 0)
   (ok! (r/ClosedIntervalOf s/Int 0 43) 43)
-  (ok! (r/ClosedIntervalOf double 0.0 1.0) 0.7)
-  (ok! (r/ClosedIntervalOf double 0.0 1.0) 0.0)
-  (ok! (r/ClosedIntervalOf double 0.0 1.0) 1.0)
+  (ok! (r/ClosedIntervalOf s/Num 0.0 1.0) 0.7)
+  (ok! (r/ClosedIntervalOf s/Num 0.0 1.0) 0.0)
+  (ok! (r/ClosedIntervalOf s/Num 0.0 1.0) 1.0)
 
   (not-ok! (r/ClosedIntervalOf s/Int 0 43) -7)
   (not-ok! (r/ClosedIntervalOf s/Int 0 43) 108)
-  (not-ok! (r/ClosedIntervalOf double 0.0 1.0) 3.14)
-  (not-ok! (r/ClosedIntervalOf double 0.0 1.0) -3.14))
+  (not-ok! (r/ClosedIntervalOf s/Num 0.0 1.0) 3.14)
+  (not-ok! (r/ClosedIntervalOf s/Num 0.0 1.0) -3.14))
 
 (t/deftest validate-numeric-open-closed-interval
   (ok! (r/OpenClosedIntervalOf s/Int 0 43) 42)
   (ok! (r/OpenClosedIntervalOf s/Int 0 43) 43)
-  (ok! (r/OpenClosedIntervalOf double 0.0 1.0) 0.7)
-  (ok! (r/OpenClosedIntervalOf double 0.0 1.0) 1.0)
+  (ok! (r/OpenClosedIntervalOf s/Num 0.0 1.0) 0.7)
+  (ok! (r/OpenClosedIntervalOf s/Num 0.0 1.0) 1.0)
 
   (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) -7)
   (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) 108)
   (not-ok! (r/OpenClosedIntervalOf s/Int 0 43) 0)
-  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) 3.14)
-  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) -3.14)
-  (not-ok! (r/OpenClosedIntervalOf double 0.0 1.0) 0.0))
+  (not-ok! (r/OpenClosedIntervalOf s/Num 0.0 1.0) 3.14)
+  (not-ok! (r/OpenClosedIntervalOf s/Num 0.0 1.0) -3.14)
+  (not-ok! (r/OpenClosedIntervalOf s/Num 0.0 1.0) 0.0))
 
 (t/deftest validate-numeric-closed-open-interval
   (ok! (r/ClosedOpenIntervalOf s/Int 0 43) 42)
   (ok! (r/ClosedOpenIntervalOf s/Int 0 43) 0)
-  (ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 0.7)
-  (ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 0.0)
+  (ok! (r/ClosedOpenIntervalOf s/Num 0.0 1.0) 0.7)
+  (ok! (r/ClosedOpenIntervalOf s/Num 0.0 1.0) 0.0)
 
   (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) -7)
   (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) 108)
   (not-ok! (r/ClosedOpenIntervalOf s/Int 0 43) 43)
-  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 3.14)
-  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) -3.14)
-  (not-ok! (r/ClosedOpenIntervalOf double 0.0 1.0) 1.0))
+  (not-ok! (r/ClosedOpenIntervalOf s/Num 0.0 1.0) 3.14)
+  (not-ok! (r/ClosedOpenIntervalOf s/Num 0.0 1.0) -3.14)
+  (not-ok! (r/ClosedOpenIntervalOf s/Num 0.0 1.0) 1.0))
 
 (t/deftest validate-distinct-list
   (ok! (r/DistinctListOf s/Num) (range 7))
@@ -727,12 +721,12 @@
 
 (def Ticket
   (sr/guard
-   -Ticket
-   '(:price :paid?)
-   (fn [{:keys [paid? price]}]
-     (or (false? paid?)
-         (and (some? price) (< 0 price))))
-   'paid-ticket-should-have-price))
+    -Ticket
+    '(:price :paid?)
+    (fn [{:keys [paid? price]}]
+      (or (false? paid?)
+          (and (some? price) (< 0 price))))
+    'paid-ticket-should-have-price))
 
 (t/deftest struct-with-guards
   (ok! Ticket {:id "1" :rev "2" :paid? true :price 10})
@@ -742,77 +736,87 @@
   (not-ok! (dissoc Ticket :id :rev) {:paid? true :price nil})
   (ok! (dissoc Ticket :price) {:id "1" :rev "2" :paid? true}))
 
-(def -BaseCode (sr/map->struct {:id r/NonEmptyStr
-                                  :rev r/NonEmptyStr
-                                  :name r/NonEmptyStr}))
+(def -BaseCode (sr/map->struct {:id   r/NonEmptyStr
+                                :rev  r/NonEmptyStr
+                                :name r/NonEmptyStr}))
 
 ;; still struct
 (def UnlockCode (assoc -BaseCode
-                       :codeType (s/eq "unlock")
-                       :code r/NonEmptyStr))
+                  :codeType (s/eq "unlock")
+                  :code r/NonEmptyStr))
 
 ;; still struct
 (def DiscountCode (assoc -BaseCode
-                         :codeType (s/eq "discount")
-                         :discountPercent (r/ClosedIntervalOf int 0 100)))
+                    :codeType (s/eq "discount")
+                    :discountPercent (r/ClosedIntervalOf s/Int 0 100)))
 
 ;; should be converted to strct inside Dispatch
 (def SecretCode {:codeType (s/eq "secret")
                  :noValues r/NonEmptyStr})
 
+(do
+  (def g
+    (sr/StructDispatch
+      '(:name)
+      (fn [{:keys [name]}] (inc (count name)))
+      1 {:name r/NonEmptyStr}
+      2 {:name r/NonEmptyStr}))
+
+  (s/check g {:name ""}))
+
 (def Code (sr/StructDispatch
-           :codeType
-           "unlock" UnlockCode
-           "discount" DiscountCode
-           "secret" SecretCode
-           "downstream" (sr/StructDispatch
-                         :fromDownstream
-                         false {:fromDownstream (s/eq false)}
-                         true {:fromDownstream (s/eq true)})
-           "customSlice" (assoc (sr/StructDispatch
-                                 '(:name)
-                                 (fn [{:keys [name]}] (inc (count name)))
-                                 1 {:name r/NonEmptyStr}
-                                 2 {:name r/NonEmptyStr})
-                                :codeType
-                                (s/eq "customSlice"))))
+            :codeType
+            "unlock" UnlockCode
+            "discount" DiscountCode
+            "secret" SecretCode
+            "downstream" (sr/StructDispatch
+                           :fromDownstream
+                           false {:fromDownstream (s/eq false)}
+                           true {:fromDownstream (s/eq true)})
+            "customSlice" (assoc (sr/StructDispatch
+                                   '(:name)
+                                   (fn [{:keys [name]}] (inc (count name)))
+                                   1 {:name r/NonEmptyStr}
+                                   2 {:name r/NonEmptyStr})
+                            :codeType
+                            (s/eq "customSlice"))))
 
 (def CounterWithElse (sr/StructDispatch
-                      :num
-                      1 {:num (s/eq 1)}
-                      2 {:num (s/eq 2)}
-                      :else {:num s/Any}))
+                       :num
+                       1 {:num (s/eq 1)}
+                       2 {:num (s/eq 2)}
+                       :else {:num s/Any}))
 
 (def CreateCodeRequest (dissoc Code :id :rev))
 
 (t/deftest dispatch-struct
   (ok! CreateCodeRequest {:codeType "unlock"
-                          :name "First"
-                          :code "Boom!"})
-  (ok! CreateCodeRequest {:codeType "discount"
-                          :name "Second"
-                          :discountPercent (int 50)})
+                          :name     "First"
+                          :code     "Boom!"})
+  (ok! CreateCodeRequest {:codeType        "discount"
+                          :name            "Second"
+                          :discountPercent 50})
   (ok! CreateCodeRequest {:codeType "secret"
                           :noValues "It's a secret!"})
-  (not-ok! CreateCodeRequest {:id "1"
+  (not-ok! CreateCodeRequest {:id       "1"
                               :codeType "unlock"
-                              :name "Third"
-                              :code "Fail :("})
+                              :name     "Third"
+                              :code     "Fail :("})
   (not-ok! CreateCodeRequest {:codeType "unknown"
-                              :name "Would not work"})
+                              :name     "Would not work"})
 
   (t/testing "dissoc from keys slice for top-level dispatch"
-    (t/is (thrown? IllegalArgumentException (dissoc Code :codeType))))
+    (t/is (thrown? js/Error (dissoc Code :codeType))))
 
   (t/testing "dissoc from downstream slices"
-    (t/is (thrown? IllegalArgumentException (dissoc Code :fromDownstream))))
+    (t/is (thrown? js/Error (dissoc Code :fromDownstream))))
 
   (t/testing "dispatch with duplicated options"
-    (t/is (thrown? IllegalArgumentException
-                   (sr/StructDispatch
-                    :fromDownstream
-                    true {:fromDownstream (s/eq false)}
-                    true {:fromDownstream (s/eq true)}))))
+    (t/is (thrown? js/Error)
+          (sr/StructDispatch
+            :fromDownstream
+            true {:fromDownstream (s/eq false)}
+            true {:fromDownstream (s/eq true)})))
 
   (t/testing "custom keys slice"
     (ok! CreateCodeRequest {:codeType "customSlice"
