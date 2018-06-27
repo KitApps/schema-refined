@@ -840,7 +840,7 @@
     (t/is (.contains dv pattern) pattern)))
 
 (t/deftest print-vector-values
-  (test-print! (r/refined [double] (r/Greater 10)) "[double]")
+  (test-print! (r/refined [double] (r/First (r/Greater 10))) "[double]")
   (test-print! (r/refined [s/Str] r/NonEmpty) "[string]")
   (test-print! (r/refined #{int} (r/On count (r/Less 10))) "#{int}")
 
