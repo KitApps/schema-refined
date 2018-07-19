@@ -1227,31 +1227,30 @@
      (.mta this)))
   (get-guards [^StructDispatchMap this] (.guards this))
   s/Schema
-  (spec [this] this)
+  (spec [^StructDispatchMap this]
+    (schema-variant/variant-spec
+     schema-spec/+no-precondition+
+     (map (fn [[dispatch-value schema]]
+            (cond-> {:schema (->> schema
+                                  (append-guards-to (get-guards this))
+                                  (apply-struct-updates-to (.updates this)))}
+              (not= :else dispatch-value)
+              (assoc :guard
+                     (fn [x]
+                       (= dispatch-value
+                          ;; THINK dispatch-fn would be called for *each*
+                          ;;       guard until one matches
+                          ((.dispatch-fn this) (select-keys x (.keys-slice this))))))))
+          (.options this))
+     (fn [x]
+       ;; THINK it's impossible to get passed value, only its string
+       ;;       value/class name symbol (depending on length of string repr)
+       ;;       https://github.com/plumatic/schema/blob/a9c1afc6f13e2ba0ef6de6ceb7bf7cad0f864456/src/cljx/schema/spec/variant.cljx#L48
+       (schema-utils/error
+        (format "Dispatch value not found among options %s"
+                (mapv first (.options this)))))))
   (explain [^StructDispatchMap this]
-    (cons 'struct-dispatch (map s/explain (map second (.options this)))))
-  schema-spec/CoreSpec
-  (subschemas [^StructDispatchMap this]
-    (map second (.options this)))
-  (checker [^StructDispatchMap this params]
-    (fn [x]
-      (let [dispatch-value ((.dispatch-fn this) (select-keys x (.keys-slice this)))
-            dispatch-schema (or (->> (.options this)
-                                     (filter #(= dispatch-value (first %)))
-                                     first)
-                                ;; use `:else` branch when set
-                                (let [[k v] (last (.options this))]
-                                  (when (= :else k) [:else v])))]
-        (if (nil? dispatch-schema)
-          (schema-utils/error (format "Dispatch value '%s' not found among options %s"
-                                      dispatch-value
-                                      (mapv first (.options this))))
-          (let [dispatch-schema' (->> dispatch-schema
-                                      second
-                                      (append-guards-to (get-guards this))
-                                      (apply-struct-updates-to (.updates this)))
-                checker (schema-spec/sub-checker {:schema dispatch-schema'} params)]
-            (checker x)))))))
+    (cons 'struct-dispatch (map s/explain (map second (.options this))))))
 
 (defn StructDispatch
   "Works the same way as `dispatch-on` but creates a data structure similar to struct
