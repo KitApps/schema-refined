@@ -1,7 +1,6 @@
 (ns schema-refined.core
   (:require [schema.core :as s]
             [schema.spec.core :as schema-spec]
-            [schema.spec.leaf :as schema-leaf]
             [schema.spec.variant :as schema-variant]
             [schema.utils :as schema-utils]
             [clojure.string :as cstr])
