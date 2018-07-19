@@ -1,6 +1,7 @@
 (ns schema-refined.core
   (:require [schema.core :as s]
             [schema.spec.core :as schema-spec]
+            [schema.spec.leaf :as schema-leaf]
             [schema.spec.variant :as schema-variant]
             [schema.utils :as schema-utils]
             [clojure.string :as cstr])
@@ -1062,27 +1063,27 @@
     (StructMap. (.data this) (conj (.guards this) guard) (.mta this)))
   (get-guards [^StructMap this] (.guards this))
   s/Schema
-  (spec [this] this)
+  (spec [^StructMap this]
+    (schema-variant/variant-spec
+     schema-spec/+no-precondition+
+     [{:schema (.data this)}]
+     nil
+     (fn [x]
+       (reduce (fn [_ {:keys [slice guard name]}]
+                 (let [x'          (select-keys x slice)
+                       next-schema (s/pred guard (or name 'not-complaint-with-guard))
+                       checker     (schema-spec/run-checker
+                                    (fn [s params]
+                                      (schema-spec/checker (s/spec s) params))
+                                    false
+                                    next-schema)
+                       tx'         (checker x')]
+                   (when (schema-utils/error? tx')
+                     (reduced tx'))))
+               nil
+               (get-guards this)))))
   (explain [^StructMap this]
-    (cons 'guarded-struct (map s/explain (.data this))))
-  schema-spec/CoreSpec
-  (subschemas [^StructMap this]
-    [(.data this)])
-  (checker [^StructMap this params]
-    (fn [x]
-      (let [main-checker (schema-spec/sub-checker {:schema (.data this)} params)
-            tx (main-checker x)]
-        (if (schema-utils/error? tx)
-          tx
-          (reduce (fn [_ {:keys [slice guard name]}]
-                    (let [x' (select-keys x slice)
-                          next-schema (s/pred guard (or name 'not-complaint-with-guard))
-                          checker (schema-spec/sub-checker {:schema next-schema} params)
-                          tx' (checker x')]
-                      (when (schema-utils/error? tx')
-                        (reduced tx'))))
-                  nil
-                  (get-guards this)))))))
+    (cons 'guarded-struct (map s/explain (.data this)))))
 
 (defn guards->str [guards]
   (if (empty? guards)
