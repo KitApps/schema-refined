@@ -1,5 +1,7 @@
 ## schema-refined
 
+[![CircleCI](https://circleci.com/gh/KitApps/schema-refined.svg?style=svg)](https://circleci.com/gh/KitApps/schema-refined)
+
 Powerful "refined" steroids for [schema](https://github.com/plumatic/schema) library.
 
 Type refinement is all about making the types (schemas) more precise to keep you away from errors and bugs. All heavy lifting of checking/validation the shape of the data is done by `schema` library. Here we introduce a few new concepts to make schemas flexible and more expressive:

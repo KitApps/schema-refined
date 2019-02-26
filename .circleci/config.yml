@@ -1,0 +1,33 @@
+version: 2
+
+shared: &shared
+  environment:
+    LEIN_ROOT: "true"
+  steps:
+    - checkout
+    - restore_cache:
+        key: << checksum "project.clj" >>
+    - run: lein with-profiles dev:dev,1.8:dev,1.9:dev,1.10 deps
+    - save_cache:
+        paths:
+          - ~/.m2
+        key: << checksum "project.clj" >>
+    - run: lein do clean, with-profiles dev:dev,1.8:dev,1.9:dev,1.10 test
+
+jobs:
+  jdk-8:
+    docker:
+      - image: circleci/clojure:openjdk-8-lein-2.9.0
+    <<: *shared
+
+  jdk-11:
+    docker:
+      - image: circleci/clojure:openjdk-11-lein-2.9.0
+    <<: *shared
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - "jdk-8"
+      - "jdk-11"
