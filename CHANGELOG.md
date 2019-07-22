@@ -1,5 +1,7 @@
 # Changelog
 
+## [not released] 0.3.0-alpha6
+
 ## 0.3.0-alpha5
 
 * Added new numeric type `EpsilonOf`
